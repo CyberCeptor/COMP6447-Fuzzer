@@ -37,6 +37,7 @@ if startLine == '{' and lines[len(lines) - 1] == '}\n':
     #   - more_data is not an array
     #   - len is not an int
     #   - input is an array
+    # adding a key didn't seem to do anything
     # nothing printed when input key is removed
     # needs Ctrl + D after input
 
