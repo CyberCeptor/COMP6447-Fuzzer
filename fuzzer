@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import sys
+
+program = sys.argv[1]
+input = sys.argv[2]
+
+print(f'fuzzing {program} using {input}')
+
+# bad.txt will have an input that causes the program to crash
+bad = open('bad.txt', 'w')
+
+# find format of valid input, can't rely on file name
+# csv1: '<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>'
+# json1: '{\n    "len": <int>,\n    "input": "<str>",\n    "more_data": ["<str>", "<str>"]\n}\n}'
+f = open(input, 'r')
+
+print(f.readlines())
+
+f.close()
+
+# fuzzer
+
+# handler
+
+bad.close()
