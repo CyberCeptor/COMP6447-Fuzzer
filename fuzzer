@@ -1,20 +1,61 @@
 #!/usr/bin/env python3
 import sys
+import re
 
 program = sys.argv[1]
 input = sys.argv[2]
-
-print(f'fuzzing {program} using {input}')
 
 # bad.txt will have an input that causes the program to crash
 bad = open('bad.txt', 'w')
 
 # find format of valid input, can't rely on file name
-# csv1: '<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>'
-# json1: '{\n    "len": <int>,\n    "input": "<str>",\n    "more_data": ["<str>", "<str>"]\n}\n}'
 f = open(input, 'r')
 
-print(f.readlines())
+lines = f.readlines()
+
+startLine = lines[0].strip('\n')
+
+csv1_line1 = 'header,must,stay,intact'
+csv2_regex = r'^[0-9]{1,}+,+[0-9]{1,}$'
+
+if startLine == '{' and lines[len(lines) - 1] == '}\n':
+    # json1: '{\n    "len": <int>,\n    "input": "<str>",\n    "more_data": ["<str>", "<str>"]\n}\n}'
+    print('json')
+
+    keys = []
+
+    for i in range(1, len(lines) - 1):
+        key = lines[i].split(':')[0]
+        key = key.split('"')[1]
+        keys.append(lines[i])
+    
+    print(keys)
+
+    # for each key, fuzz some input and pass it into the binary
+    # keys can also be fuzzed? -> worked normally when "len" was changed to "pog"
+    # all values are treated as string, still behaves normally when
+    #   - more_data is not an array
+    #   - len is not an int
+    #   - input is an array
+    # nothing printed when input key is removed
+    # needs Ctrl + D after input
+
+
+
+elif startLine in csv1_line1:
+    # csv1: '<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>'
+    print('csv1')
+
+    # first line can have more elements as long as it starts with header,must,stay,intact
+    # all lines require at least 4 elements
+
+
+
+elif re.match(startLine, csv2_regex): # TODO: doesn't work, probably try just splitting by the comma and checking that the returned list has 2 items
+    # csv2 format
+    print('csv2')
+else: # TODO: add other formats
+    print('none of those')
 
 f.close()
 
