@@ -30,6 +30,7 @@ def try_xml(text: bytes) -> bool:
     Attempt to decode as xml. Returns if it was successful.
     Uses defusedxml because xml is vulnerable to bombs.
     """
+    #### BIG NOTE NOT STANDARD LIBRARY. NEEDS INSTALL SCRIPT TO INSTALL.
     from defusedxml.ElementTree import parse
     try:
         parse(text.splitlines())

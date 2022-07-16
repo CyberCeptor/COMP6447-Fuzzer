@@ -1,5 +1,6 @@
 
 import random
+import itertools
 
 class ByteFlipMutator():
     def __init__(self, sample:bytes):
@@ -15,6 +16,21 @@ class ByteFlipMutator():
         new[flip] = new[flip] ^ 0xff
         return new
 
+class ManyByteFlipMutator():
+    def __init__(self, sample:bytes):
+        self.sample = bytearray(sample)
+        self.attempts = list(range(0, len(self.sample)))
+        random.shuffle(self.attempts)
+
+    def __next__(self) -> bytearray:
+        if len(self.attempts) == 0:
+            raise StopIteration()
+        flips = random.choices(self.attempts, k=random.randrange(0, len(self.sample) // 2))
+        new = bytearray(self.sample)
+        for flip in flips:
+            new[flip] = new[flip] ^ 0xff
+        return new
+
 class BitFlipMutator():
     def __init__(self, sample:bytes):
         self.sample = bytearray(sample)
@@ -27,6 +43,20 @@ class BitFlipMutator():
         flip = self.attempts.pop()
         new = bytearray(self.sample)
         new[flip[0]] = new[flip[0]] ^ (1 << flip[1])
+        return new
+
+class SubstringMutator():
+    def __init__(self, sample:bytes):
+        self.sample = bytearray(sample)
+        self.indices = list(range(-len(self.sample) // 2, len(self.sample)+1))
+        random.shuffle(self.indices)
+
+    def __next__(self) -> bytearray:
+        if len(self.indices) == 0:
+            raise StopIteration()
+        start,end = random.choices(self.indices, k=2)
+        start,end = max(min(start,end),0), max(start,end)
+        new = bytearray(self.sample[start:end])
         return new
 
 class EmptyMutator():
@@ -54,8 +84,8 @@ class BasicMutator():
     def __init__(self, sample:bytes):
         self.sample = sample
         self.mutators = [
-            ByteFlipMutator(sample), BitFlipMutator(sample),
-            EmptyMutator(sample), LongMutator(sample)]
+            ByteFlipMutator(sample), ManyByteFlipMutator(sample), BitFlipMutator(sample),
+            SubstringMutator(sample), EmptyMutator(sample), LongMutator(sample)]
         self.tried = {"empty":0, "long":0}
 
     def __iter__(self):
