@@ -3,6 +3,7 @@ import sys
 import format_finder
 import basic_mutator
 import subprocess
+import timer
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -18,8 +19,8 @@ def try_gen(gen):
             print(f"test {i}")
         process = subprocess.run(program, input=test, timeout=1.0, capture_output=True)
         if process.returncode != 0:
-            print(f"length of test: {len(test)}")
-            print(process.returncode)
+            print(f"Length of test: {len(test)}")
+            print(f"Exit code: {process.returncode}")
             return test
     return None
 
@@ -27,9 +28,13 @@ def write_out_bad(text):
     with open("bad.txt", "wb") as f:
         f.write(text)
 
-def fuzz(sample_text:bytes):
+def fuzz(sample_text:bytes, seconds_per_gen: float = 50.0):
+    result = None
     plaintext_gen = basic_mutator.get_gen(sample_text)
-    result = try_gen(plaintext_gen)
+    try:
+        result = timer.timeout(seconds_per_gen, try_gen, plaintext_gen)
+    except KeyboardInterrupt:
+        pass
     if result is not None:
         write_out_bad(result)
 

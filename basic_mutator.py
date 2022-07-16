@@ -75,6 +75,7 @@ def get_gen(sample_text:bytes):
     return BasicMutator(sample_text)
 
 def main():
+    # Simple testing.
     print("Testing \"hi\"")
     g = get_gen(b"hi")
     for i, _ in enumerate(g):
