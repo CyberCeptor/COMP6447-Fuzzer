@@ -1,25 +1,36 @@
 #!/usr/bin/env python3
 import sys
+import format_finder
+import basic_mutator
+import subprocess
 
 program = sys.argv[1]
 input = sys.argv[2]
 
-print(f'fuzzing {program} using {input}')
+with open(input, "rb") as f:
+    sample_text = f.read()
 
-# bad.txt will have an input that causes the program to crash
-bad = open('bad.txt', 'w')
+plaintext_gen = basic_mutator.get_gen(sample_text)
 
-# find format of valid input, can't rely on file name
-# csv1: '<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>\n<str>,<str>,<str>,<str>'
-# json1: '{\n    "len": <int>,\n    "input": "<str>",\n    "more_data": ["<str>", "<str>"]\n}\n}'
-f = open(input, 'r')
+def try_gen(gen):
+    for i, test in enumerate(gen, 1):
+        if i % 100 == 0:
+            print(f"test {i}")
+        process = subprocess.run(program, input=test, timeout=1.0, capture_output=True)
+        if process.returncode != 0:
+            print(f"length of test: {len(test)}")
+            print(process.returncode)
+            return test
+    return None
 
-print(f.readlines())
+def write_out_bad(text):
+    with open("bad.txt", "wb") as f:
+        f.write(text)
 
-f.close()
+def fuzz(sample_text:bytes):
+    plaintext_gen = basic_mutator.get_gen(sample_text)
+    result = try_gen(plaintext_gen)
+    if result is not None:
+        write_out_bad(result)
 
-# fuzzer
-
-# handler
-
-bad.close()
+fuzz(sample_text)
