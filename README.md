@@ -1,8 +1,5 @@
 # Alt-F5 Fuzzer
 
-## Name
-Choose a self-explaining name for your project.
-
 ## Description
 This project aims to be a fuzzer for programs that take in data from stdin and
 will attempt to crash that program in a meaninful way that could potentially be
