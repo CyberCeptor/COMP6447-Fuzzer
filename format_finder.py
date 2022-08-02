@@ -37,3 +37,22 @@ def try_xml(text: bytes) -> bool:
     except:
         return False
     return True
+
+def try_jpg(text: bytes) -> bool:
+    """
+    Attempt to decode as jpg. Returns if it was successful.
+    """
+    from io import BytesIO
+    from PIL import Image
+    try:
+        Image.open(BytesIO(text), formats=["JPEG"])
+    except:
+        return False
+    return True
+
+def try_elf(text: bytes) -> bool:
+    """
+    Attempt to decode as elf. Returns if it was successful.
+    """
+    # Is there really any other way to test?
+    return text[:4] == b"\x7fELF"
