@@ -6,7 +6,7 @@ def try_json(text: bytes) -> bool:
     import json
     try:
         json.loads(text)
-    except json.JSONDecodeError:
+    except:
         return False
     return True
 

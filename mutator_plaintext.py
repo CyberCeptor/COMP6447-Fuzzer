@@ -1,15 +1,12 @@
 import numpy as np
 from mutator_base import BaseMutator
-from combiner import combine
 
 class RepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:4], "little")
         repeat = min(repeat, 10000) # Cap at 10k
-        try:
-            return text * repeat
-        except MemoryError:
-            return text
+        if len(text) > 50000: return text
+        return text * repeat
 
     def get_dimension(self) -> "int":
         """

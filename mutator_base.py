@@ -3,6 +3,9 @@ from numpy import ndarray
 
 """
 The base mutator class. Only exists for typing information.
+
+The get_mutation function MUST be deterministic. It is the only way that scipy
+will function properly.
 """
 
 class BaseMutator(metaclass=ABCMeta):

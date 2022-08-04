@@ -9,6 +9,7 @@ import random
 from scipy.optimize import minimize, Bounds
 from combiner import apply, get_dim
 from mutator_plaintext import *
+from mutator_json import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -35,7 +36,8 @@ def get_mutators(text):
         #mutators.append(CSVMutator())
         pass
     if format_finder.try_json(text):
-        #mutators.append(JSONMutator())
+        mutators.append(JsonIntMutator())
+        mutators.append(JsonFloatMutator())
         pass
     if format_finder.try_xml(text):
         #mutators.append(XMLMutator())
@@ -86,9 +88,9 @@ def thread_run():
 
 def fuzz():
     import os
-    # Setting a reasonable limit so that 
-    max_threads = os.cpu_count() * 2
-    #max_threads = 2
+    # Setting a reasonable limit so that the cpu doesn't die.
+    max_threads = os.cpu_count() * 2 + 1
+    #max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
     while True:
         try:
@@ -98,7 +100,7 @@ def fuzz():
                 t.start()
             sleep(1.0)
         except KeyboardInterrupt:
-            print("Finished")
+            print("Exiting")
             break
 
 def try_empty():
@@ -106,7 +108,7 @@ def try_empty():
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
         if p.returncode != 0:
             write_out_bad("")
-    except:
+    except subprocess.TimeoutExpired:
         # timed out.
         pass
 
@@ -118,7 +120,7 @@ def try_repeat():
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode != 0:
                 write_out_bad(input)
-        except:
+        except subprocess.TimeoutExpired:
             # timed out.
             pass
 
