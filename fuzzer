@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-import re
-import sys
-import format_finder
-import basic_mutator
-import breakpoint_finder
 import subprocess
-import shlex
-import timer
+import sys
+from time import sleep
+import breakpoint_finder
+import format_finder
+import threading
+import _thread as thread
+import random
+from scipy.optimize import minimize, Bounds
+from combiner import apply, get_dim
+from mutator_plaintext import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -14,33 +17,125 @@ input = sys.argv[2]
 with open(input, "rb") as f:
     sample_text = f.read()
 
-breakpoints = breakpoint_finder.get(program)
-
-plaintext_gen = basic_mutator.get_gen(sample_text)
-
-def try_gen(gen):
-    for i, test in enumerate(gen, 1):
-        if i % 100 == 0:
-            print(f"test {i}")
-        process = subprocess.run(program, input=test, timeout=1.0, capture_output=True)
-        if process.returncode != 0:
-            print(f"Length of test: {len(test)}")
-            print(f"Exit code: {process.returncode}")
-            return test
-    return None
-
-def write_out_bad(text):
+lock = threading.Lock()
+def write_out_bad(text: bytes):
+    """
+    Write out the failing text. Also acquire a lock and kill the fuzzer to stop
+    it immediately and to prevent multiple writers.
+    """
+    lock.acquire() # never release so that nothing else can possibly write out.
     with open("bad.txt", "wb") as f:
         f.write(text)
+    thread.interrupt_main()
 
-def fuzz(sample_text:bytes, seconds_per_gen: float = 50.0):
-    result = None
-    plaintext_gen = basic_mutator.get_gen(sample_text)
-    try:
-        result = timer.timeout(seconds_per_gen, try_gen, plaintext_gen)
-    except KeyboardInterrupt:
+def get_mutators(text):
+    # Always have the plaintext ones.
+    mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
+        RepeatMutator()]
+    if format_finder.try_csv(text):
+        #mutators.append(CSVMutator())
         pass
-    if result is not None:
-        write_out_bad(result)
+    if format_finder.try_json(text):
+        #mutators.append(JSONMutator())
+        pass
+    if format_finder.try_xml(text):
+        #mutators.append(XMLMutator())
+        pass
+    if format_finder.try_jpg(text):
+        #mutators.append(JPGMutator())
+        pass
+    if format_finder.try_elf(text):
+        #mutators.append(ELFMutator())
+        pass
+    return mutators
 
-fuzz(sample_text)
+coverage_breakpoints = breakpoint_finder.get(program)
+mutators = get_mutators(sample_text)
+
+CRASH_VALUE = -100000000
+
+def count_coverage(gdb_instance, input: bytes) -> int:
+    # Run and count breakpoints hit for the given input.
+    # No resetting needed because the run command does that for us.
+
+    # Temporary to just get it running.
+    p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+    
+    if p.returncode != 0:
+        write_out_bad(input)
+
+    count = 0 # set to specific value if a crash instead.
+    if count == CRASH_VALUE:
+        # write it out and kill the fuzzer.
+        write_out_bad(input)
+    # The output should be negated so that minimize works correctly.
+    return -random.random()
+
+def thread_run():
+    # make gdb instance. Apply breakpoints
+    gdb_instance = None
+    # get a random sequence of mutators to apply.
+    num_choices = random.randrange(0, len(mutators) * 2)
+    methods = random.choices(mutators, k=num_choices)
+    if get_dim(methods) < 1:
+        return
+
+    objective = lambda vec: count_coverage(gdb_instance, apply(sample_text, methods, vec))
+    # Begin minimisation from a random starting vector.
+    bounds = Bounds(0, 1)
+    minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds)
+
+def fuzz():
+    import os
+    # Setting a reasonable limit so that 
+    max_threads = os.cpu_count() * 2
+    #max_threads = 2
+
+    while True:
+        try:
+            # Distribute work out and keeping trying until something crashes.
+            while threading.active_count() < max_threads:
+                t = threading.Thread(target=thread_run, daemon=True)
+                t.start()
+            sleep(1.0)
+        except KeyboardInterrupt:
+            print("Finished")
+            break
+
+def try_empty():
+    try:
+        p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
+        if p.returncode != 0:
+            write_out_bad("")
+    except:
+        # timed out.
+        pass
+
+def try_repeat():
+    while True:
+        repeat = random.randrange(0, 100000)
+        input = sample_text * repeat
+        try:
+            p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+            if p.returncode != 0:
+                write_out_bad(input)
+        except:
+            # timed out.
+            pass
+
+def try_simple():
+    # Start threads for the simple cases
+    threading.Thread(target=try_empty, daemon=True).start()
+    threading.Thread(target=try_repeat, daemon=True).start()
+
+def main():
+    try:
+        try_simple()
+        fuzz()
+    except Exception as e:
+        print(e.args)
+        # Marker that we finished.
+        # program exit will kill all the threads
+
+if __name__ == "__main__":
+    fuzz()
