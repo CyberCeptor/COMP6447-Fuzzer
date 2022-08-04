@@ -25,7 +25,7 @@ def get_disassembly(program, instructions):
                     or re.match(r'Disassembly of section .*:|[0-9a-f]{8} <.*>:', line) 
                     or '...' in line):
                     if any(instruction in line for instruction in instructions):
-                        if re.match(r' [0-9a-f]{7}:.*j[a-z ].*<.*>', line):
+                        if re.match(r'.*:.*j[a-z ].*<.*>', line):
                             disass.write(line)
 
 def get(program):
@@ -55,6 +55,9 @@ def get(program):
         if any(line.startswith(addr) for addr in jmp_addr):
             breakpoints.append(lines[i + 1])
     f.close()
+
+    print(len(jmp_addr))
+    print(len(breakpoints))
 
     return breakpoints
 
