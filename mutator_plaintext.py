@@ -5,7 +5,11 @@ from combiner import combine
 class RepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:4], "little")
-        return text * repeat
+        repeat = min(repeat, 10000) # Cap at 10k
+        try:
+            return text * repeat
+        except MemoryError:
+            return text
 
     def get_dimension(self) -> "int":
         """
@@ -26,6 +30,7 @@ class EmptyMutator(BaseMutator):
 class SubstringMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         length = len(text)
+        if length == 0: return text
         start = int.from_bytes(input[0].tobytes()[2:7], "little") % length
         end = int.from_bytes(input[1].tobytes()[2:7], "little") % length
         start, end = min(start, end), max(start, end)
@@ -40,6 +45,7 @@ class SubstringMutator(BaseMutator):
 
 class BitFlipMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        if len(text) == 0: return text
         byte_idx = int.from_bytes(input[0].tobytes()[2:7], "big") % len(text)
         bit = int.from_bytes(input[1].tobytes()[2:7], "big") % 8
         new = bytearray(text)
@@ -55,6 +61,7 @@ class BitFlipMutator(BaseMutator):
 
 class ByteFlipMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        if len(text) == 0: return text
         byte_idx = int.from_bytes(input[0].tobytes()[2:7], "big") % len(text)
         new = bytearray(text)
         new[byte_idx] = new[byte_idx] ^ 0xff
@@ -65,25 +72,3 @@ class ByteFlipMutator(BaseMutator):
         First element of vector = which byte to flip
         """
         return 1
-
-class PlaintextMutator(BaseMutator):
-    """
-    Apply the given mutators in sequence.
-    """
-    def __init__(self, mutators: "list[BaseMutator]"):
-        self.mutators = mutators
-
-    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        start = 0
-        mutators = []
-        for m in self.mutators:
-            end = start + m.get_dimension()
-            mutators.append((m, input[start:end]))
-            start = end
-        return combine(text, mutators)
-
-    def get_dimension(self) -> "int":
-        """
-        Total number of args from each mutator.
-        """
-        return sum(m.get_dimension() for m in self.mutators)

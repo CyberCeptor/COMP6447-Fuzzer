@@ -44,7 +44,7 @@ def try_jpg(text: bytes) -> bool:
     from io import BytesIO
     from PIL import Image
     try:
-        Image.open(BytesIO(text), formats=["JPEG"])
+        Image.open(BytesIO(text), formats=["JPEG"]).load()
     except:
         return False
     return True
