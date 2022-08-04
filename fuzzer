@@ -3,18 +3,10 @@ import re
 import sys
 import format_finder
 import basic_mutator
+import breakpoint_finder
 import subprocess
 import shlex
 import timer
-
-# get jump instructions in a list
-p = subprocess.call(['./instructions.sh'])
-
-f = open('/tmp/instructions', 'r')
-instructions = f.readlines()[0].split(' ')
-instructions = [instruction.rstrip().lower() for instruction in instructions]
-f.close()
-# print(instructions)
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -22,27 +14,7 @@ input = sys.argv[2]
 with open(input, "rb") as f:
     sample_text = f.read()
 
-jmp_addresses = []
-
-# get addresses that are jumped to
-subprocess.Popen(f'objdump -d {program} > /tmp/disass', shell=True).communicate()
-
-disass = open('/tmp/disass2', 'a')
-
-with open('/tmp/disass', 'r') as f:
-    for line in f:
-        if not (line in ['', '\n'] or re.match(fr'({program}: .*)', line) or re.match(r'Disassembly of section .*:|[0-9a-f]{8} <.*>:', line) or '...' in line):
-            if any(instruction in line for instruction in instructions):
-                disass.write(line)
-
-subprocess.Popen("cut -f3,4 /tmp/disass2 | cut -d'<' -f1 > /tmp/disass3", shell=True).communicate()
-
-with open('/tmp/disass3', 'r') as f:
-    for line in f:
-        info = re.split(r'j[a-z ]+', line)
-        jmp_addresses.append(info[1].strip())
-
-print(jmp_addresses)
+breakpoints = breakpoint_finder.get(program)
 
 plaintext_gen = basic_mutator.get_gen(sample_text)
 
