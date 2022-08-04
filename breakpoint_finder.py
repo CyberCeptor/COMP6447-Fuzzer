@@ -21,12 +21,10 @@ def get_disassembly(program, instructions):
     with open('/tmp/disass2', 'w') as disass:
         with open('/tmp/disass', 'r') as f:
             for line in f:
-                if not (line in ['', '\n'] or re.match(fr'({program}: .*)', line) 
-                    or re.match(r'Disassembly of section .*:|[0-9a-f]{8} <.*>:', line) 
-                    or '...' in line):
+                if re.match(r'.*:.*j[a-z ].*<.*>', line):
+                    # only get specific jump instructions
                     if any(instruction in line for instruction in instructions):
-                        if re.match(r'.*:.*j[a-z ].*<.*>', line):
-                            disass.write(line)
+                        disass.write(line)
 
 def get(program):
     jmp_addr = []
@@ -41,11 +39,9 @@ def get(program):
     # add the address of the jmp instruction to the jmp_addr list
     with open('/tmp/disass3', 'r') as f:
         for line in f:
-            # print(line, end='')
             jmp_addr.append(line.split(':')[0])
 
             info = re.split(r'j[a-z ]+', line)
-            # print(info)
             breakpoints.append(info[1].strip())
 
     # add each subsequent instruction after each address in the jmp_addr list
@@ -56,8 +52,4 @@ def get(program):
             breakpoints.append(lines[i + 1])
     f.close()
 
-    print(len(jmp_addr))
-    print(len(breakpoints))
-
     return breakpoints
-
