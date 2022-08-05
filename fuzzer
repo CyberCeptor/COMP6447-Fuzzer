@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import subprocess
 import sys
+# import gdb
 from time import sleep
 import breakpoint_finder
 import format_finder
@@ -74,6 +75,14 @@ def count_coverage(gdb_instance, input: bytes) -> int:
 def thread_run():
     # make gdb instance. Apply breakpoints
     gdb_instance = None
+    p = subprocess.Popen(['gdb', program], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    # for breakpoint in coverage_breakpoints:
+    #     print(f'*0x{breakpoint}')
+    #     gdb.Breakpoint(f'*0x{breakpoint}')
+    print(p)
+    for breakpoint in coverage_breakpoints:
+        p.stdin.write(f'break *0x{breakpoint}')
+
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(0, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)

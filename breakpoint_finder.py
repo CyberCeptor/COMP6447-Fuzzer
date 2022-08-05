@@ -49,7 +49,7 @@ def get(program):
     lines = f.readlines()
     for i, line in enumerate(lines):
         if any(line.startswith(addr) for addr in jmp_addr):
-            breakpoints.append(lines[i + 1])
+            breakpoints.append(lines[i + 1].split(':')[0].strip())
     f.close()
 
     return breakpoints
