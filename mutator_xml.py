@@ -9,6 +9,16 @@ import _thread as thread
 # https://docs.python.org/3/library/xml.etree.elementtree.html
 import xml.etree.ElementTree as ET
 
+
+
+
+
+
+
+
+
+
+
 # Test memory with a large XML to check for buffer overflow attacks with tag parsing.
 '''
 In a loop send large xml files to the process and wait for the exit code, and then check the exit code,
@@ -100,7 +110,7 @@ def findXMLTags(file):
         tags_list.append(tag)
 
     # Remove duplicates to reduce time.
-    tags_list = list(set(tags_list))
+    # tags_list = list(set(tags_list))
 
     return tags_list
 
@@ -112,8 +122,8 @@ def findRootTag(file):
     return root
 
 
-
-def changeRootTag(file, root):
+def changeRootTag(file):
+    root = findRootTag(file)
     # print(root.tag)
     tree = ET.parse(file)
     for elem in tree.iter():
@@ -137,28 +147,38 @@ def changeTags(file, tags_list):
     return tree
 
 
-def changeAttributes(file, tags_list):
+def changeAttributes(file):
     tree = ET.parse(file)
 
-    for tag in tags_list:
-        for elem in tree.iter():
-            elem.attrib = {"":"%p"}
+    for element in tree.iter():
+        element.attrib = {"": "%p"}
 
     # tree.write(file)
+    return tree
 
 
+def changeHREFAttribute(file):
+    tree = ET.parse(file)
 
+    for element in tree.iter():
+        if 'href' in element.attrib:
+            print(element.attrib)
+            element.attrib['href'] = "EEE"
 
+    # tree.write(file)
+    return tree
 
 def main():
 
     file = sys.argv[1]
     tags_list = findXMLTags(file)
+    print(tags_list)
     # changeTags(file, tags_list)
-    root = findRootTag(file)
-    # changeAttributes(file, tags_list)
-
-    changeRootTag(file, root)
+    # root = findRootTag(file)
+    # tree = changeAttributes(file)
+    # print(tree)
+    # changeHREFAttribute(file)
+    # changeRootTag(file)
 
 
 main()
