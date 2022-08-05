@@ -11,3 +11,6 @@ pip3 install Pillow defusedxml numpy scipy
 #   gdb binding for pwntools
 #   gdb on system
 #   objdump on system
+
+# Change permissions on scripts just in case they lost them in unpacking
+chmod +x instructions.sh

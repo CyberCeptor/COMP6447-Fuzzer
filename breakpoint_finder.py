@@ -49,7 +49,16 @@ def get(program):
     lines = f.readlines()
     for i, line in enumerate(lines):
         if any(line.startswith(addr) for addr in jmp_addr):
-            breakpoints.append(lines[i + 1])
+            breakpoints.append(lines[i + 1].split(":")[0].lstrip())
     f.close()
 
-    return breakpoints
+    return sorted(set(breakpoints))
+
+def gdb_command_str(program: str) -> str:
+    """
+    Construct a string to pass into gdb that will set up all breakpoints
+    and makes them automatically continue.
+    """
+    addrs = get(program)
+    pass_cmd = "\ncommands 1-$bpnum\nsilent\ncontinue\nend\n"
+    return "\n".join(("break *0x"+x) for x in addrs) + pass_cmd
