@@ -8,6 +8,7 @@ import _thread as thread
 import random
 from scipy.optimize import minimize, Bounds
 from combiner import apply, get_dim
+import breakpoint_finder
 from mutator_plaintext import *
 from mutator_json import *
 
@@ -48,6 +49,7 @@ def get_mutators(text):
         pass
     return mutators
 
+breakpoints = breakpoint_finder.get(program)
 coverage_breakpoints = [0x1, 0x2] # fill in with actual addresses from objdump.
 mutators = get_mutators(sample_text)
 

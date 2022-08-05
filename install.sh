@@ -1,3 +1,4 @@
+#!/bin/sh
 # Libraries
 #   Pillow => import PIL for jpg usage
 #   defusedxml => safe alternative to python builtin xml
