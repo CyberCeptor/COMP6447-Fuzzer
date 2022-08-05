@@ -36,9 +36,7 @@ def get_mutators(text):
         #mutators.append(CSVMutator())
         pass
     if format_finder.try_json(text):
-        mutators.append(JsonIntMutator())
-        mutators.append(JsonFloatMutator())
-        pass
+        mutators.extend([JsonIntMutator(), JsonFloatMutator()])
     if format_finder.try_xml(text):
         #mutators.append(XMLMutator())
         pass
@@ -89,7 +87,11 @@ def thread_run():
 def fuzz():
     import os
     # Setting a reasonable limit so that the cpu doesn't die.
-    max_threads = os.cpu_count() * 2 + 1
+    cpus = os.cpu_count()
+    if cpus is None:
+        max_threads = 8
+    else:
+        max_threads = cpus * 2 + 1
     #max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
     while True:

@@ -1,5 +1,5 @@
 # Libraries
-#   Pillow => import PIL
+#   Pillow => import PIL for jpg usage
 #   defusedxml => safe alternative to python builtin xml
 #   numpy => vector format
 #   scipy => automated gradient descent
