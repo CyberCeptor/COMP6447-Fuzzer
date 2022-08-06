@@ -15,6 +15,7 @@ import breakpoint_finder
 import multiprocessing
 from mutator_plaintext import *
 from mutator_json import *
+from mutator_csv import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -38,12 +39,19 @@ def write_out_bad(text: bytes):
 def get_mutators(text):
     # Always have the plaintext ones.
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
-        RepeatMutator()]
+        RepeatMutator(), EmptyMutator()]
     if format_finder.try_csv(text):
-        #mutators.append(CSVMutator())
-        pass
+        mutators.append(CSVRepeatRowMutator())
+        mutators.append(CSVEmptyRowMutator())
+        mutators.append(CSVRepeatColMutator())
+        mutators.append(CSVEmptyColMutator())
+        mutators.append(CSVEmptyColHeaderMutator())
+        mutators.append(CSVCellMultiplierMutator())
+        mutators.append(CSVEmptyCellMutator())
     if format_finder.try_json(text):
-        mutators.extend([JsonIntMutator(), JsonFloatMutator()] * 3)
+        mutators.extend([JsonIntMutator(), JsonExtremeIntMutator(), 
+        JsonFloatNanMutator(), JsonListRepeatMutator(),
+        JsonEntryRepeatMutator(), JsonChangeTypeMutator()])
     if format_finder.try_xml(text):
         #mutators.append(XMLMutator())
         pass
