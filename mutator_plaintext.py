@@ -70,19 +70,3 @@ class ByteFlipMutator(BaseMutator):
         First element of vector = which byte to flip
         """
         return 1
-
-
-def main():
-
-    file = sys.argv[1]
-    
-
-    with open(file, "rb") as file:
-        sample_text = file.read()
-        result = RepeatMutator.get_mutation(sample_text, np.ndarray)
-
-
-
-
-if __name__ == "__main__":
-    main()

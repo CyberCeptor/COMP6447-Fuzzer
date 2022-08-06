@@ -1,3 +1,4 @@
+import sys
 from mutator_base import BaseMutator
 import numpy as np
 
@@ -20,13 +21,14 @@ exploits xml allowing defining entities.
 
 class xmlOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        number = input[0]
+        number = 2
         xmlTemplate="""
         {tag1}
-            {input}
+            {input1}
+            {input2}
         {tag2}
         """
-        return xmlTemplate.format(tag1=("<tag>"*number), input=("<input>" * number), tag2=("</tag>" * number))
+        return xmlTemplate.format(tag1=("<tag>"*number), input1=("<input>" * number), input2=("</input>" * number), tag2=("</tag>" * number))
 
     def get_dimension(self) -> "int":
                 return 0 # ???
@@ -69,9 +71,8 @@ class xmlBombMutator(BaseMutator):
 
 
 class AttributeMutator():
-
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        return AttributeMutator.changeAttributes(text, input[0])
+        return AttributeMutator.changeAttributes(text, str(input[0].tobytes()[2:4]))
 
     # Changes all of the attributes for all tags in the xml
     def changeAttributes(sample_text, attribute_change):
@@ -101,7 +102,7 @@ class AttributeMutator():
 
 class TagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        return TagMutator.changeTags(text, input[0])
+        return TagMutator.changeTags(text, str(input[0].tobytes()[2:4]))
 
     # Returns a list of all tags in the xml file.
     def get_XMLTags(sample_text):
@@ -111,32 +112,15 @@ class TagMutator():
             tags_list.append(tag)
 
         return tags_list
-
-    #returns the root tag.
-    def get_RootTag(sample_text):
-        tree = ET.ElementTree(ET.fromstring(sample_text))
-        root = tree.getroot()
-        return root
-
-    # Changes the root tag.
-    def changeRootTag(sample_text, root_change):
-        root = TagMutator.get_RootTag(sample_text)
-        tree = ET.fromstring(sample_text)
-        for elem in tree.iter():
-            if elem.tag == root.tag:
-                elem.tag = root_change
-
-        return ET.tostring(tree)
     
     # Goes through the file and modifies all of the tags in the file, except for the root (html) tag.
-    def changeTags(sample_text, tag_change):
+    def changeTags(sample_text, tag_change) -> bytes:
         tree = ET.fromstring(sample_text)
         tags_list = TagMutator.get_XMLTags(sample_text)
-
         for tag in tags_list:
             for elem in tree.findall(tag.tag):
                 elem.tag = tag_change
-        
+        print(ET.tostring(tree))
         return ET.tostring(tree)
 
     def get_dimension(self) -> "int":
@@ -144,18 +128,30 @@ class TagMutator():
 
 
 
+class RootTagMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        root = RootTagMutator.get_RootTag(text)
+        tree = ET.fromstring(text)
+        for elem in tree.iter():
+            if elem.tag == root.tag:
+                elem.tag = str(input[0].tobytes()[2:4])
+
+        return ET.tostring(tree)
+
+    #returns the root tag.
+    def get_RootTag(sample_text):
+        tree = ET.ElementTree(ET.fromstring(sample_text))
+        root = tree.getroot()
+        return root
+
 # def main():
-
 #     file = sys.argv[1]
+#     with open(file, "rb") as f:
+#         sample_text = f.read()
 
-#     with open(file, "rb") as file:
-#         sample_text = file.read()
-#         # print(TagMutator.changeRootTag(sample_text, "AAA"))
-#         # print(TagMutator.changeTags(sample_text, "EEE"))
-#         # print(changeAttributes(sample_text, "AAA"))
-#         # print(changeHREFAttribute(sample_text, "222"))
-    
-#     # print(XMLOverflow(10))
+#     array = np.random.rand(10)
+#     print(TagMutator.get_mutation(TagMutator, sample_text, array))
+
 
 # if __name__ == "__main__":
 #     main()

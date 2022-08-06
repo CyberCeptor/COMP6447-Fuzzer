@@ -1,10 +1,12 @@
 import json
+import sys
 import numpy as np
 from mutator_base import BaseMutator
 from format_finder import try_json
 
 class JsonIntMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        print(text)
         int_index = int.from_bytes(input[0].tobytes()[2:4], "little")
         int_set = int.from_bytes(input[1].tobytes()[2:4], "little")
         multiplier = (input[1] * 2 - 1) * int_set
@@ -25,6 +27,8 @@ class JsonIntMutator(BaseMutator):
         Second element of vector = what to set it to.
         """
         return 2
+
+
 
 class JsonFloatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -74,3 +78,4 @@ def json_update_list(json: list, target_type, target_index: int, multiplier: flo
             json_update_dict(v, target_type, target_index, multiplier, cur_index)
         elif isinstance(v, list):
             json_update_list(v, target_type, target_index, multiplier, cur_index)
+
