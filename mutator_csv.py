@@ -115,6 +115,27 @@ class CSVEmptyColHeaderMutator(BaseMutator):
         """
         return 1
 
+class CSVEmptyCellMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        r_index = int.from_bytes(input[0].tobytes()[2:4], "little")
+        c_index = int.from_bytes(input[1].tobytes()[2:4], "little")
+
+        if not try_csv(text):
+            return text
+            
+        c = list(csv.reader(text))
+        if not r_index < len(c) || not c_index < len(c[r_index]):
+            return text
+        c[r_index][c_index] = ""
+        return to_csv(c)
+        
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = the row of the cell to make empty
+        Second element of vector = the col of the cell to make empty
+        """
+        return 2
+
 def to_csv(list: mutated_list) -> bytes:
         #TODO implement this function
         f = io.StringIO()
