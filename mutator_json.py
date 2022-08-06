@@ -458,7 +458,7 @@ def change_from_list(k, type_to):
     if type_to == 'int':
         new = int.from_bytes(k.encode()[2:4], "little")
     elif type_to == 'str':
-        new = f'"{item.strip() for item in k[1:-1].split(",")}"'
+        new = ', '.join(item.strip() for item in k[1:-1].split(","))
     elif type_to == 'float':
         new = f'{int.from_bytes(k.encode()[2:4], "little")}.0'
     else:
@@ -471,7 +471,7 @@ def change_from_dict(k, type_to):
     if type_to == 'int':
         new = int.from_bytes(k.encode()[2:4], "little")
     elif type_to == 'str':
-        new = f'"{item.strip() for item in k[1:-1].split(",")}"'
+        new = f'{k}'
     elif type_to == 'float':
         new = f'{int.from_bytes(k.encode()[2:4], "little")}.0'
     else:

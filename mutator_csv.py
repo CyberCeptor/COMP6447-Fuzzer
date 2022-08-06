@@ -102,7 +102,7 @@ class CSVEmptyColHeaderMutator(BaseMutator):
             
         t = np.transpose(list(csv.reader(text)))
         # Check for no header and no entries
-        if not index < len(t) || len(t[index]) < 1:
+        if not index < len(t) or len(t[index]) < 1:
             return text
         
         t[index] = t[index][0] + ([""] * len(t[index] - 1))
@@ -124,7 +124,7 @@ class CSVCellMultiplierMutator(BaseMutator):
             return text
             
         c = list(csv.reader(text))
-        if not r_index < len(c) || not c_index < len(c[r_index]):
+        if not r_index < len(c) or not c_index < len(c[r_index]):
             return text
         if isdecimal(c[r_index][c_index]):
             multiplier = (input[2] * 2 - 1) * multiplier
@@ -157,7 +157,7 @@ class CSVEmptyCellMutator(BaseMutator):
             return text
             
         c = list(csv.reader(text))
-        if not r_index < len(c) || not c_index < len(c[r_index]):
+        if not r_index < len(c) or not c_index < len(c[r_index]):
             return text
         c[r_index][c_index] = ""
         return to_csv(c)
@@ -175,7 +175,7 @@ def to_csv(list: mutated) -> bytes:
         w.writerows(mutated)
         return f.getvalue().encode()
 
-def extend_str(str: string, int length) -> str:
+def extend_str(str: string, int: length) -> str:
     if string == "":
         return ""
     new_str = []
