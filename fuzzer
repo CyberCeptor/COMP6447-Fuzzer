@@ -39,7 +39,7 @@ def write_out_bad(text: bytes):
 def get_mutators(text):
     # Always have the plaintext ones.
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
-        RepeatMutator(), EmptyMutator()]
+        RepeatMutator()]
     if format_finder.try_csv(text):
         mutators.append(CSVRepeatRowMutator())
         mutators.append(CSVEmptyRowMutator())

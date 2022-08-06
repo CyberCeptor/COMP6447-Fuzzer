@@ -14,16 +14,6 @@ class RepeatMutator(BaseMutator):
         """
         return 1
 
-class EmptyMutator(BaseMutator):
-    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        return b""
-
-    def get_dimension(self) -> "int":
-        """
-        No arguments as it's an empty string.
-        """
-        return 0
-
 class SubstringMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         length = len(text)
