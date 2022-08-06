@@ -13,13 +13,18 @@ class JsonIntMutator(BaseMutator):
 
         if not try_json(text):
             return text
-        j = json.loads(text)
-        if isinstance(j, dict):
-            json_update_dict(j, int, int_index, multiplier, 0)
-        elif isinstance(j, list):
-            json_update_list(j, int, int_index, multiplier, 0)
+        try:
+            j = json.loads(text)
+            if isinstance(j, dict):
+                int_index %= json_count_dict(j, int)
+                json_update_dict(j, int, int_index, multiplier, 0)
+            elif isinstance(j, list):
+                int_index %= json_count_list(j, int)
+                json_update_list(j, int, int_index, multiplier, 0)
 
-        return json.dumps(j).encode()
+            return json.dumps(j).encode()
+        except:
+            return text
 
     def get_dimension(self) -> "int":
         """
@@ -41,8 +46,10 @@ class JsonExtremeIntMutator(BaseMutator):
             return text
         j = json.loads(text)
         if isinstance(j, dict):
+            int_index %= json_count_dict(j, int)
             json_update_dict(j, int, int_index, multiplier, 0)
         elif isinstance(j, list):
+            int_index %= json_count_list(j, int)
             json_update_list(j, int, int_index, multiplier, 0)
 
         return json.dumps(j).encode()
@@ -65,13 +72,18 @@ class JsonFloatInfMutator(BaseMutator):
 
         if not try_json(text):
             return text
-        j = json.loads(text)
-        if isinstance(j, dict):
-            json_update_dict(j, float, float_index, multiplier, 0)
-        elif isinstance(j, list):
-            json_update_list(j, float, float_index, multiplier, 0)
+        try:
+            j = json.loads(text)
+            if isinstance(j, dict):
+                float_index %= json_count_dict(j, float)
+                json_update_dict(j, float, float_index, multiplier, 0)
+            elif isinstance(j, list):
+                float_index %= json_count_list(j, float)
+                json_update_list(j, float, float_index, multiplier, 0)
 
-        return json.dumps(j).encode()
+            return json.dumps(j).encode()
+        except:
+            return text
 
     def get_dimension(self) -> "int":
         """
@@ -93,8 +105,10 @@ class JsonFloatNanMutator(BaseMutator):
             return text
         j = json.loads(text)
         if isinstance(j, dict):
+            float_index %= json_count_dict(j, float)
             json_update_dict(j, float, float_index, multiplier, 0)
         elif isinstance(j, list):
+            int_index %= json_count_list(j, float)
             json_update_list(j, float, float_index, multiplier, 0)
 
         return json.dumps(j).encode()
@@ -223,6 +237,28 @@ def json_update_list(json: list, target_type, target_index: int, multiplier: flo
             json_update_dict(v, target_type, target_index, multiplier, cur_index)
         elif isinstance(v, list):
             json_update_list(v, target_type, target_index, multiplier, cur_index)
+
+def json_count_dict(json: dict, target_type):
+    count = 0
+    for k, v in json.items():
+        if isinstance(v, target_type):
+            count += 1
+        elif isinstance(v, dict):
+            count += json_count_dict(v, target_type)
+        elif isinstance(v, list):
+            count += json_count_list(v, target_type)
+    return count
+
+def json_count_list(json: list, target_type):
+    count = 0
+    for i, v in enumerate(json):
+        if isinstance(v, target_type):
+            count += 1
+        elif isinstance(v, dict):
+            count += json_count_dict(v, target_type)
+        elif isinstance(v, list):
+            count += json_count_list(v, target_type)
+    return count
 
 def json_update_type_dict(json: dict, type_from, type_to, target_index: int, cur_index = 0):
     for k, v in json.items():
