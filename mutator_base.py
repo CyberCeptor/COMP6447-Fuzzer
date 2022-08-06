@@ -3,6 +3,11 @@ from numpy import ndarray
 
 """
 The base mutator class. Only exists for typing information.
+
+The get_mutation function MUST be deterministic. It is the only way that scipy
+will function properly.
+
+All values in the vector will in the interval [0, 1] (endpoints included).
 """
 
 class BaseMutator(metaclass=ABCMeta):

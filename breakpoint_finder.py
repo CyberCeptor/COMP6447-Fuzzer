@@ -42,14 +42,30 @@ def get(program):
             jmp_addr.append(line.split(':')[0])
 
             info = re.split(r'j[a-z ]+', line)
+            # print(info)
             breakpoints.append(info[1].strip())
 
     # add each subsequent instruction after each address in the jmp_addr list
     f = open('/tmp/disass', 'r')
     lines = f.readlines()
     for i, line in enumerate(lines):
-        if any(line.startswith(addr) for addr in jmp_addr):
-            breakpoints.append(lines[i + 1].split(':')[0].strip())
+        if any(line.startswith(addr) for addr in jmp_addr) and (i + 1) < len(lines):
+            breakpoints.append(lines[i + 1].split(":")[0].lstrip())
     f.close()
 
-    return breakpoints
+    # print(sorted(set(breakpoints)))
+
+    return sorted(set(breakpoints))
+
+def gdb_command_str(program: str) -> str:
+    """
+    Construct a string to pass into gdb that will set up all breakpoints
+    and makes them automatically continue.
+    """
+    addrs = get(program)
+    set_breakpoints = "\n".join(("break *0x"+x) for x in addrs) + '\n'
+    # print(set_breakpoints)
+    enable_count = 'enable count ' + ' '.join(('*0x' + x) for x in addrs) + '\n'
+    # print(enable_count)
+    pass_cmd = "\ncommands 1-$bpnum\nsilent\ncontinue\nend\n"
+    return [set_breakpoints, enable_count, pass_cmd] #+ pass_cmd
