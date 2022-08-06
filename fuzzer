@@ -114,8 +114,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
             write_out_bad(input)
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
-        #print("breakpoint score:", count)
-        #thread.interrupt_main()
+        print("breakpoint score:", count)
     finally:
         timer.cancel()
 
@@ -209,8 +208,6 @@ def fuzz():
                 t.start()
                 t = threading.Thread(target=thread_run_no_gdb, daemon=True)
                 t.start()
-                sys.stdout.write(".")
-                sys.stdout.flush()
             sleep(1.0)
         except KeyboardInterrupt:
             break
@@ -219,6 +216,7 @@ def try_empty():
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
+            print("\nEmpty file caused crash.")
             write_out_bad(b"")
     except subprocess.TimeoutExpired:
         # timed out.
@@ -231,6 +229,7 @@ def try_repeat():
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
+                print(f"\nSample input repeated {repeat} times caused crash.")
                 write_out_bad(input)
         except subprocess.TimeoutExpired:
             # timed out.
@@ -241,6 +240,7 @@ def try_long():
         input = b"a"*1000000
         p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
+            print("Input of 1 million characters caused crash.")
             write_out_bad(input)
     except subprocess.TimeoutExpired:
         # timed out.
@@ -252,6 +252,7 @@ def try_insertion_big_int():
             input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
+                print(f"Inserting a large negative int at index {idx} caused crash.")
                 write_out_bad(input)
         except subprocess.TimeoutExpired:
             # timed out.
