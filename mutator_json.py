@@ -335,7 +335,7 @@ def json_update_type_dict(json: dict, type_from, type_to, target_index: int, cur
         elif isinstance(v, dict):
             json_update_dict(v, type_from, type_to, target_index, cur_index)
         elif isinstance(v, list):
-            json_update_list(v, target_type, target_index, multiplier, cur_index)
+            json_update_list(v, type_from, type_to, target_index, cur_index)
 
 def json_update_type_list(json: dict, type_from, type_to, target_index: int, cur_index = 0):
     for i, v in enumerate(json):
@@ -412,7 +412,7 @@ def json_update_type_list(json: dict, type_from, type_to, target_index: int, cur
         elif isinstance(v, dict):
             json_update_dict(v, type_from, type_to, target_index, cur_index)
         elif isinstance(v, list):
-            json_update_list(v, target_type, target_index, multiplier, cur_index)
+            json_update_list(v, type_from, type_to, target_index, cur_index)
 
 def change_from_str(k, type_to):
     new = ''
