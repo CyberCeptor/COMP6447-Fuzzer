@@ -114,6 +114,40 @@ class CSVEmptyColHeaderMutator(BaseMutator):
         """
         return 1
 
+class CSVCellMultiplierMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        r_index = int.from_bytes(input[0].tobytes()[2:4], "little")
+        c_index = int.from_bytes(input[1].tobytes()[2:4], "little")
+        multiplier = int.from_bytes(input[2].tobytes()[2:4], "little")
+
+        if not try_csv(text):
+            return text
+            
+        c = list(csv.reader(text))
+        if not r_index < len(c) || not c_index < len(c[r_index]):
+            return text
+        if isdecimal(c[r_index][c_index]):
+            multiplier = (input[2] * 2 - 1) * multiplier
+            c[r_index][c_index] = str(int(c[r_index][c_index]) * multiplier)
+        elif is_float(c[r_index][c_index]):
+            multiplier = input[2] * 2 - 1
+            if multiplier <= -0.99: multiplier = float("-inf")
+            elif -0.01 <= multiplier <= 0.01: multiplier = 0.0
+            elif multiplier >= 0.99: multiplier = float("inf")
+            c[r_index][c_index] = str(float(c[r_index][c_index]) * multiplier)
+        else:
+            multiplier = (input[2] * 2 - 1) * multiplier
+            c[r_index][c_index] = extend_str(c[r_index][c_index], multiplier)
+        return to_csv(c)
+        
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = the row of the cell to make empty
+        Second element of vector = the col of the cell to make empty
+        Third element of vector = the value of the multiplier
+        """
+        return 3
+
 class CSVEmptyCellMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         r_index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -140,5 +174,24 @@ def to_csv(list: mutated) -> bytes:
         w = csv.writer(f)
         w.writerows(mutated)
         return f.getvalue().encode()
-        
+
+def extend_str(str: string, int length) -> str:
+    if string == "":
+        return ""
+    new_str = []
+    i = 0
+    while (True):
+        for char in string:
+            if i >= length:
+                return ''.join(new_str)
+            new_str.append(char)
+            i += 1   
+            
+
+def is_float(str: value) -> boolean:
+    try:
+        float(value)
+        return True
+    except:
+        return False       
 
