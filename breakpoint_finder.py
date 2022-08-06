@@ -68,4 +68,7 @@ def gdb_command_str(program: str) -> str:
     # enable_count = 'enable count ' + ' '.join(('*0x' + x) for x in addrs) + '\n'
     # print(enable_count)
     pass_cmd = "\ncommands 1-$bpnum\nsilent\ncontinue\nend\n"
-    return [set_breakpoints, pass_cmd] #+ pass_cmd
+
+    full_command = "set logging on\n" + set_breakpoints + pass_cmd + ""
+
+    return full_command
