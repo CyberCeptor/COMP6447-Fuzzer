@@ -35,9 +35,8 @@ class CSVEmptyRowMutator(BaseMutator):
         c = list(csv.reader(text))
         if not index < len(c):
             return text
-        
-        mutated = c[:index] + ([""] * len(c[index])) + c[index + 1:]
-        return to_csv(mutated)
+        c[index] = [""] * len(c[index])
+        return to_csv(c)
 
     def get_dimension(self) -> "int":
         """
@@ -80,8 +79,8 @@ class CSVEmptyColMutator(BaseMutator):
         if not index < len(t):
             return text
         
-        mutated = t[:index] + ([""] * len(t[index])) + t[index + 1:]
-        return to_csv(np.transpose(mutated))
+        t[index] = [""] * len(t[index])
+        return to_csv(np.transpose(t))
 
     def get_dimension(self) -> "int":
         """
@@ -106,8 +105,8 @@ class CSVEmptyColHeaderMutator(BaseMutator):
         if not index < len(t) || len(t[index]) < 1:
             return text
         
-        mutated = t[:index] + (t[index][0] + ([""] * len(t[index] - 1))) + t[index + 1:]
-        return to_csv(np.transpose(mutated))
+        t[index] = t[index][0] + ([""] * len(t[index] - 1))
+        return to_csv(np.transpose(t))
 
     def get_dimension(self) -> "int":
         """
