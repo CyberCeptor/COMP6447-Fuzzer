@@ -26,6 +26,27 @@ class CSVRepeatRowMutator(BaseMutator):
         """
         return 2
 
+class CSVEmptyRowMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        index = int.from_bytes(input[0].tobytes()[2:4], "little")
+
+        if not try_csv(text):
+            return text
+            
+        c = list(csv.reader(text))
+        if not index < len(c):
+            return text
+        
+        mutated = c[:index] + ([""] * len(c[index])) + c[index + 1:]
+
+        return to_csv(mutated)
+
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = which row to make empty
+        """
+        return 1
+
 def to_csv(list: mutated_list) -> bytes:
         #TODO implement this function
         f = io.StringIO()
