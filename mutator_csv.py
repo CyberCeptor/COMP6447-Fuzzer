@@ -56,7 +56,7 @@ class CSVRepeatColMutator(BaseMutator):
         # Transpose array so we can operate on columns as rows    
         t = np.transpose(list(csv.reader(text)))
         
-        if not index < len(c):
+        if not index < len(t):
             return text
         
         mutated = t[:index] + ([t[index]] * repeat) + t[index + 1:]
@@ -64,10 +64,30 @@ class CSVRepeatColMutator(BaseMutator):
         
     def get_dimension(self) -> "int":
         """
-        First element of vector = which row to repeat
+        First element of vector = which column to repeat
         Second element of vector = how many times to repeat.
         """
         return 2
+
+class CSVEmptyColMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        index = int.from_bytes(input[0].tobytes()[2:4], "little")
+
+        if not try_csv(text):
+            return text
+            
+        t = np.transpose(list(csv.reader(text)))
+        if not index < len(t):
+            return text
+        
+        mutated = t[:index] + ([""] * len(t[index])) + t[index + 1:]
+        return to_csv(np.transpose(mutated))
+
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = which column to make empty
+        """
+        return 1
 
 def to_csv(list: mutated_list) -> bytes:
         #TODO implement this function
