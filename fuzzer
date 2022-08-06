@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import subprocess
 import sys
-import re
-# import gdb
 from time import sleep
 import breakpoint_finder
 import format_finder
@@ -12,6 +10,7 @@ import random
 from scipy.optimize import minimize, Bounds
 from combiner import apply, get_dim
 import breakpoint_finder
+import multiprocessing
 from mutator_plaintext import *
 from mutator_json import *
 
@@ -60,30 +59,34 @@ CRASH_VALUE = -100000000
 def count_coverage(gdb_instance, input: bytes) -> int:
     # Run and count breakpoints hit for the given input.
     # No resetting needed because the run command does that for us.
-    # print(input)
-    f = open('/tmp/input', 'wb')
+
+    curr_thread = threading.current_thread().ident
+
+    f = open(f'/tmp/input{curr_thread}', 'wb')
     f.write(input)
     f.close()
 
     # Temporary to just get it running.
     # p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-    timer = threading.Timer(60.0, gdb_instance.kill())
+    timer = threading.Timer(40.0, gdb_instance.kill)
     try:
         timer.start()
-        gdb_instance.stdin.write('run < /tmp/input\n'.encode())
+        gdb_instance.stdin.write(f'run < /tmp/input{curr_thread}\n'.encode())
 
-        print(gdb_instance.stdout.readlines())
+        print('after input:', gdb_instance.stdout.readlines())
 
         gdb_instance.stdin.write('info breakpoints\n'.encode())
-
         
-        print(gdb_instance.stdout.readlines())
-        print('return code:', gdb_instance.returncode)
+        print('breakpoint info:', gdb_instance.stdout.readlines())
+
+        # print(gdb_instance.stderr.readlines())
+
+        # print('return code:', gdb_instance.returncode)
 
         stdout, stderr = gdb_instance.communicate()
-        print(stdout)
-        print(stderr)
-        
+
+        print('after communicate:', gdb_instance.returncode)
+
         if gdb_instance.returncode != 0:
             print('v bad')
             write_out_bad(input)
@@ -93,47 +96,24 @@ def count_coverage(gdb_instance, input: bytes) -> int:
             # write it out and kill the fuzzer.
             write_out_bad(input)
     finally:
+        # gdb_instance.stdin.write('info breakpoints\n'.encode())
+        # print('time is up: ', gdb_instance.stdout.readlines())
+        print('time is up')
         timer.cancel()
-    # lines = gdb_instance.stdout.readlines()
-    # print(lines)
-
-    # if gdb_instance.poll() is None:
-    #     gdb_instance.stdin.write('continue\n'.encode())
-
-    # for line in gdb_instance.stdout:
-    #     if re.match(r'Breakpoint \d*, .* in .*', line.decode()):
-    #         print(line.decode())
 
     # The output should be negated so that minimize works correctly.
     return -random.random()
 
 def thread_run():
     # make gdb instance. Apply breakpoints
-    gdb_instance = subprocess.Popen(['gdb', program], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    gdb_instance.stdin.write('set logging overwrite on\n'.encode())
-
-    # print(gdb_instance.stdout.readlines())
-    # print(gdb_instance.stderr)
+    gdb_instance = subprocess.Popen(['gdb', '--nx', program], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     set_breakpoints = breakpoint_finder.gdb_command_str(program)[0]
     gdb_instance.stdin.write(set_breakpoints.encode())
 
-    # print(gdb_instance.stdout.readlines())
-    # print(gdb_instance.stderr.readlines())
-
-    enable_count = breakpoint_finder.gdb_command_str(program)[1]
-    gdb_instance.stdin.write(enable_count.encode())
-
-    # print(gdb_instance.stdout.readlines())
-    # print(gdb_instance.stderr.readlines())
-
-    breakpoints_cmd = breakpoint_finder.gdb_command_str(program)[2]
+    breakpoints_cmd = breakpoint_finder.gdb_command_str(program)[1]
     gdb_instance.stdin.write(breakpoints_cmd.encode())
     print(gdb_instance)
-
-    # p.stdin.write('info breakpoints\n'.encode())
-    # print(p.returncode)
 
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(0, len(mutators) * 2)
