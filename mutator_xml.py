@@ -140,18 +140,18 @@ class TagMutator():
 
 
 
-def main():
+# def main():
 
-    file = sys.argv[1]
+#     file = sys.argv[1]
 
-    with open(file, "rb") as file:
-        sample_text = file.read()
-        # print(TagMutator.changeRootTag(sample_text, "AAA"))
-        # print(TagMutator.changeTags(sample_text, "EEE"))
-        # print(changeAttributes(sample_text, "AAA"))
-        # print(changeHREFAttribute(sample_text, "222"))
+#     with open(file, "rb") as file:
+#         sample_text = file.read()
+#         # print(TagMutator.changeRootTag(sample_text, "AAA"))
+#         # print(TagMutator.changeTags(sample_text, "EEE"))
+#         # print(changeAttributes(sample_text, "AAA"))
+#         # print(changeHREFAttribute(sample_text, "222"))
     
-    # print(XMLOverflow(10))
+#     # print(XMLOverflow(10))
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
