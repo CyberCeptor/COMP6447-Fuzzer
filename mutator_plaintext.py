@@ -70,3 +70,17 @@ class ByteFlipMutator(BaseMutator):
         First element of vector = which byte to flip
         """
         return 1
+
+
+def main():
+    file = sys.argv[1]
+    with open(file, "r+") as f:
+        sample_text = f.read()
+
+        array = np.random.rand(10)
+        print(BitFlipMutator.get_mutation(BitFlipMutator, sample_text, array))
+        print(sample_text)
+
+
+if __name__ == "__main__":
+    main()

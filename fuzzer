@@ -14,6 +14,7 @@ from combiner import apply, get_dim
 import breakpoint_finder
 from mutator_plaintext import *
 from mutator_json import *
+from mutator_xml import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -40,9 +41,16 @@ def get_mutators(text):
         #mutators.append(CSVMutator())
         pass
     if format_finder.try_json(text):
-        mutators.extend([JsonIntMutator(), JsonFloatMutator()])
-    if format_finder.try_xml(text):
-        #mutators.append(XMLMutator())
+        # mutators.extend([JsonIntMutator(), JsonFloatMutator()])
+        pass
+    if format_finder.try_xml(input):
+        mutators.append(XMLOverFlowMutator())
+        mutators.append(XMLAttributeMutator())
+        mutators.append(XMLhrefAttributeMutator())
+        mutators.append(XMLTagMutator())
+        mutators.append(XMLRootTagMutator())
+        mutators.append(XMLChildrenMutator())
+
         pass
     if format_finder.try_jpg(text):
         #mutators.append(JPGMutator())
@@ -188,10 +196,38 @@ def try_repeat():
             # timed out.
             pass
 
+def try_xmlbomb():
+    xmlbomb = """
+        <?xml version="1.0"?>
+        <!DOCTYPE lolz [
+        <!ENTITY lol "lol">
+        <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+        <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+        <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+        <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
+        <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
+        <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
+        <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
+        <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
+        <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
+        <!ENTITY lolz "&lol9;">
+        ]>
+        <root>&lolz;</root>
+        """
+    
+    try:
+        p = subprocess.run(program, input = xmlbomb, timeout=1.0, capture_output=True)
+        if p.returncode != 0:
+            write_out_bad(xmlbomb)
+    except subprocess.TimeoutExpired:
+        pass
+
+
 def try_simple():
     # Start threads for the simple cases
     threading.Thread(target=try_empty, daemon=True).start()
     threading.Thread(target=try_repeat, daemon=True).start()
+    threading.Thread(target=try_xmlbomb, daemon=True).start()
 
 def main():
     try:
@@ -202,47 +238,3 @@ def main():
         # Marker that we finished.
         # program exit will kill all the threads
 
-
-
-def main2():
-
-    gdb_instance = subprocess.Popen(['gdb', program], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    f = open('/sample/plaintext1.txt', 'wb')
-    f.write(input)
-    f.close()
-
-    # Temporary to just get it running.
-    # p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-    timer = threading.Timer(10.0, gdb_instance.kill())
-    try:
-        timer.start()
-        gdb_instance.stdin.write(f'run < {f}\n'.encode())
-
-        print(gdb_instance.stdout.readlines())
-
-        gdb_instance.stdin.write('info breakpoints\n'.encode())
-
-        
-        print(gdb_instance.stdout.readlines())
-        print('return code:', gdb_instance.returncode)
-
-        stdout, stderr = gdb_instance.communicate()
-        print(stdout)
-        print(stderr)
-        
-        if gdb_instance.returncode != 0:
-            print('v bad')
-            write_out_bad(input)
-
-        count = 0 # set to specific value if a crash instead.
-        if count == CRASH_VALUE:
-            # write it out and kill the fuzzer.
-            write_out_bad(input)
-    finally:
-        timer.cancel()
-
-
-
-if __name__ == "__main__":
-    fuzz()

@@ -1,4 +1,7 @@
 
+from io import StringIO
+
+
 def try_json(text: bytes) -> bool:
     """
     Attempt to decode as json. Returns if it was successful.
@@ -25,16 +28,17 @@ def try_csv(text: bytes) -> bool:
         return False
     return True
 
-def try_xml(text: bytes) -> bool:
+def try_xml(input) -> bool:
     """
     Attempt to decode as xml. Returns if it was successful.
     Uses defusedxml because xml is vulnerable to bombs.
     """
-    from defusedxml.ElementTree import parse
-    try:
-        parse(text.splitlines())
-    except:
-        return False
+    with open(input, 'r') as file:
+        import xml.dom.minidom as XML
+        try:
+            XML.parseString(file.read().strip())
+        except:
+            return False
     return True
 
 def try_jpg(text: bytes) -> bool:
