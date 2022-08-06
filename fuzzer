@@ -32,6 +32,7 @@ def write_out_bad(text: bytes):
     print('v bad')
     with open("bad.txt", "wb") as f:
         f.write(text)
+        f.flush()
     thread.interrupt_main()
 
 def get_mutators(text):
@@ -89,7 +90,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
     timer = threading.Timer(5.0, gdb_instance.kill)
     try:
         timer.start()
-        gdb_instance.stdin.write(f'run < /tmp/input{curr_thread} > /dev/null\n'.encode())
+        gdb_instance.stdin.write(f'run < /tmp/input{curr_thread} &> /dev/null\n'.encode())
         gdb_instance.stdin.flush()
         # Wait for program to finish.
         get_until_gdb(out_pipe)
@@ -108,7 +109,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
         #print('exit code:', exit_code)
 
-        if exit_code != b"0":
+        if exit_code not in [b"0", b"1"]:
             # Found a crash so write it out and kill the fuzzer.
             write_out_bad(input)
 
@@ -172,18 +173,21 @@ def thread_run_no_gdb():
 
     def objective(vec):
         try:
-            subprocess.run(program, input=apply(sample_text, methods, vec),
+            input = apply(sample_text, methods, vec)
+            p = subprocess.run(program, input=input,
                 timeout=0.5, capture_output=True)
+            if p.returncode not in [0, 1]:
+                write_out_bad(input)
         finally:
-            return -random.random()
+            return
     def timer_expire():
         raise TimeoutError()
     timer = threading.Timer(5.0, timer_expire)
-    # Random walk for minimisation. Just try anything really for 5 seconds.
-    bounds = Bounds(0, 1)
+    # Random walk for 5 seconds.
     try:
         timer.start()
-        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds)
+        while True:
+            objective(np.random.rand(get_dim(methods)))
     except TimeoutError:
         return
 
@@ -209,13 +213,12 @@ def fuzz():
                 sys.stdout.flush()
             sleep(1.0)
         except KeyboardInterrupt:
-            print("Exiting")
             break
 
 def try_empty():
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
-        if p.returncode != 0:
+        if p.returncode not in [0, 1]:
             write_out_bad(b"")
     except subprocess.TimeoutExpired:
         # timed out.
@@ -227,7 +230,28 @@ def try_repeat():
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-            if p.returncode != 0:
+            if p.returncode not in [0, 1]:
+                write_out_bad(input)
+        except subprocess.TimeoutExpired:
+            # timed out.
+            pass
+
+def try_long():
+    try:
+        input = b"a"*1000000
+        p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+        if p.returncode not in [0, 1]:
+            write_out_bad(input)
+    except subprocess.TimeoutExpired:
+        # timed out.
+        pass
+
+def try_insertion_big_int():
+    for idx in range(len(sample_text)):
+        try:
+            input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
+            p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+            if p.returncode not in [0, 1]:
                 write_out_bad(input)
         except subprocess.TimeoutExpired:
             # timed out.
@@ -237,6 +261,8 @@ def try_simple():
     # Start threads for the simple cases
     threading.Thread(target=try_empty, daemon=True).start()
     threading.Thread(target=try_repeat, daemon=True).start()
+    threading.Thread(target=try_long, daemon=True).start()
+    threading.Thread(target=try_insertion_big_int, daemon=True).start()
 
 def main():
     try:
