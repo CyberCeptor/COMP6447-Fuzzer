@@ -135,11 +135,10 @@ class CSVEmptyCellMutator(BaseMutator):
         """
         return 2
 
-def to_csv(list: mutated_list) -> bytes:
-        #TODO implement this function
+def to_csv(list: mutated) -> bytes:
         f = io.StringIO()
         w = csv.writer(f)
         w.writerows(mutated)
-        return None
+        return f.getvalue().encode()
         
 
