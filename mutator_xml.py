@@ -6,7 +6,9 @@ import numpy as np
 # https://docs.python.org/3/library/xml.etree.elementtree.html
 import xml.etree.ElementTree as ET
 
-class xmlOverFlowMutator(BaseMutator):
+# Returns a new xml with the tag lengths being multiplied
+# by the number from 'input'.
+class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         number = int.from_bytes(input[0].tobytes()[2:7], "little")
         xmlTemplate="""
@@ -23,7 +25,8 @@ class xmlOverFlowMutator(BaseMutator):
     def get_dimension(self) -> "int":
                 return 1
 
-class xmlBombMutator(BaseMutator):
+# Returns a xmlbomb, with entities set as 10 copies of the previous entity.
+class XMLBombMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         return  """
         <?xml version="1.0"?>
@@ -46,9 +49,9 @@ class xmlBombMutator(BaseMutator):
     def get_dimension(self) -> "int":
             return 0
 
-
-class AttributeMutator():
-    # Changes all of the attributes for all tags in the xml
+# Changes all of the attributes for all tags to the set character
+# mulitplied by the number from 'input'
+class XMLAttributeMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         tree = ET.fromstring(text)
 
@@ -64,15 +67,16 @@ class AttributeMutator():
         return 1
 
 
-# Changes all of the 'href' attributes.
-class HREFAttributeMutator(BaseMutator):
+# Changes all of the 'href' attributes to the set character, by the
+# number of 'input'
+class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         tree = ET.fromstring(text)
 
         for element in tree.iter():
             if 'href' in element.attrib:
                 print(element.attrib)
-                element.attrib['href'] = "%p" * int.from_bytes(input[0].tobytes()[2:7], "little")
+                element.attrib['href'] = "%s" * int.from_bytes(input[0].tobytes()[2:7], "little")
 
         return ET.tostring(tree)
     
@@ -83,10 +87,12 @@ class HREFAttributeMutator(BaseMutator):
         return 1
 
 
-class TagMutator():
+# Modifies all of the tags, except the root tag to the set character,
+# mulitplied by the number of 'input'
+class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         tree = ET.fromstring(text)
-        tags_list = TagMutator.get_XMLTags(text)
+        tags_list = XMLTagMutator.get_XMLTags(text)
         for tag in tags_list:
             for elem in tree.findall(tag.tag):
                 elem.tag = "%p" * int.from_bytes(input[0].tobytes()[2:7], "little")
@@ -108,10 +114,10 @@ class TagMutator():
         return 1
 
 
-
-class RootTagMutator(BaseMutator):
+# Modifies the Root tag by the number of times from the 'input'
+class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        root = RootTagMutator.get_RootTag(text)
+        root = XMLRootTagMutator.get_RootTag(text)
         tree = ET.fromstring(text)
         for elem in tree.iter():
             if elem.tag == root.tag:
@@ -131,7 +137,8 @@ class RootTagMutator(BaseMutator):
     def get_dimension(self) -> "int":
         return 1
     
-# Add's a copy of the xml the end of the xml multiple times.
+# Add's children (New elements) to the xml by appending the tree to itself
+# by the number of times from the 'input'.
 class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         tree = ET.fromstring(text)
@@ -154,7 +161,7 @@ def main():
         sample_text = f.read()
 
         array = np.random.rand(10)
-        print(XMLChildrenMutator.get_mutation(TagMutator, sample_text, array))
+        print(XMLChildrenMutator.get_mutation(XMLTagMutator, sample_text, array))
 
 
 if __name__ == "__main__":
