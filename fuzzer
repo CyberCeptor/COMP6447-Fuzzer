@@ -34,8 +34,13 @@ def get_mutators(text):
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
         RepeatMutator()]
     if format_finder.try_csv(text):
-        #mutators.append(CSVMutator())
-        pass
+        mutators.append(CSVRepeatRowMutator())
+        mutators.append(CSVEmptyRowMutator())
+        mutators.append(CSVRepeatColMutator())
+        mutators.append(CSVEmptyColMutator())
+        mutators.append(CSVEmptyColHeaderMutator())
+        mutators.append(CSVCellMultiplierMutator())
+        mutators.append(CSVEmptyCellMutator())
     if format_finder.try_json(text):
         mutators.extend([JsonIntMutator(), JsonFloatMutator()])
     if format_finder.try_xml(text):
