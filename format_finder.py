@@ -1,7 +1,4 @@
 
-from io import StringIO
-
-
 def try_json(text: bytes) -> bool:
     """
     Attempt to decode as json. Returns if it was successful.
