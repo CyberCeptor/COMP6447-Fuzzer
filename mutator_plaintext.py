@@ -6,7 +6,7 @@ class RepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:4], "little")
         repeat = min(repeat, 5000) # Cap at 5k
-        if len(text) > 10000: return text
+        if len(text) >= 10000: return text
         return text * repeat
 
     def get_dimension(self) -> "int":
