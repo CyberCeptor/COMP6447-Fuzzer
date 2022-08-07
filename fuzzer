@@ -133,9 +133,10 @@ def thread_run():
     # make gdb instance. Apply breakpoints
 
     out_pipe = TemporaryFile(buffering=0)
+    err_pipe = TemporaryFile(buffering=0)
 
     gdb_instance = subprocess.Popen(['gdb', '-q', '--nx', program],
-        stdin=subprocess.PIPE, stdout=out_pipe)
+        stdin=subprocess.PIPE, stdout=out_pipe, stderr=err_pipe)
 
     gdb_instance.stdin.write(b"set logging on\n")
 
@@ -171,6 +172,7 @@ def thread_run():
         return
 
     out_pipe.close()
+    err_pipe.close()
     gdb_instance.kill()
 
 def thread_run_no_gdb():

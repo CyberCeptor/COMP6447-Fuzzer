@@ -20,38 +20,16 @@ class XMLOverFlowMutator(BaseMutator):
             {input2}
         {tag2}
         """
-        print("EEE")
         return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat))
 
     """
-    First element of vector, number of repititions of the Entities in the xml.
+    First element of vector, number of repetitions of the Entities in the xml.
     """
     def get_dimension(self) -> "int":
-                return 1
+        return 1
 
-# # Returns a xmlbomb, with entities set as 10 copies of the previous entity.
-# class XMLBombMutator(BaseMutator):
-#     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-#         return  """
-#         <?xml version="1.0"?>
-#         <!DOCTYPE lolz [
-#         <!ENTITY lol "lol">
-#         <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
-#         <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
-#         <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
-#         <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
-#         <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
-#         <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
-#         <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
-#         <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
-#         <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
-#         <!ENTITY lolz "&lol9;">
-#         ]>
-#         <root>&lolz;</root>
-#         """
-#     """ Doesn't require any paramaters"""
-#     def get_dimension(self) -> "int":
-#             return 0
+    def get_name(self) -> "str":
+        return "Repeated tag in xml"
 
 # Changes all of the attributes for all tags to the set character
 # mulitplied by the number from 'input'
@@ -65,8 +43,6 @@ class XMLAttributeMutator():
         for element in tree.iter():
             element.attrib = {"%s": "%s" * repeat}
 
-
-
         return ET.tostring(tree)
     
     """
@@ -74,6 +50,9 @@ class XMLAttributeMutator():
     """
     def get_dimension(self) -> "int":
         return 1
+
+    def get_name(self) -> "str":
+        return "Change attributes for tags in xml"
 
 
 # Changes all of the 'href' attributes to the set character, by the
@@ -85,7 +64,6 @@ class XMLhrefAttributeMutator(BaseMutator):
         tree = ET.fromstring(text)
         for element in tree.iter():
             if 'href' in element.attrib:
-                print(element.attrib)
                 element.attrib['href'] = "%s" * repeat
 
         return ET.tostring(tree)
@@ -95,6 +73,9 @@ class XMLhrefAttributeMutator(BaseMutator):
     """
     def get_dimension(self) -> "int":
         return 1
+
+    def get_name(self) -> "str":
+        return "Change 'href' attributes in xml"
 
 
 # Modifies all of the tags, except the root tag to the set character,
@@ -125,6 +106,9 @@ class XMLTagMutator():
     def get_dimension(self) -> "int":
         return 1
 
+    def get_name(self) -> "str":
+        return "Change tag names in xml"
+
 
 # Modifies the Root tag by the number of times from the 'input'
 class XMLRootTagMutator(BaseMutator):
@@ -151,6 +135,9 @@ class XMLRootTagMutator(BaseMutator):
     """
     def get_dimension(self) -> "int":
         return 1
+
+    def get_name(self) -> "str":
+        return "Repeat root tag in xml"
     
 # Add's children (New elements) to the xml by appending the tree to itself
 # by the number of times from the 'input'.
@@ -171,3 +158,6 @@ class XMLChildrenMutator(BaseMutator):
     """
     def get_dimension(self) -> "int":
         return 1
+
+    def get_name(self) -> "str":
+        return "Repeat the tree's children in xml"
