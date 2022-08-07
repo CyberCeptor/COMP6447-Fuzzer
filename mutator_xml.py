@@ -12,17 +12,18 @@ import xml.etree.ElementTree as ET
 # by the number from 'input'.
 class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
         xmlTemplate="""
         {tag1}
             {input1}
             {input2}
         {tag2}
         """
-        return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat)).encode()
+        if (len(xmlTemplate) * repeat) < 10000:
+            return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat)).encode()
 
+        return text
     """
     First element of vector, number of repetitions of the Entities in the xml.
     """
@@ -36,9 +37,14 @@ class XMLOverFlowMutator(BaseMutator):
 # mulitplied by the number from 'input'
 class XMLAttributeMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
+        
+        if len(text) * repeat > 10000:
+            return text
+
+        if not try_xml(text):
+            return text
 
         if not try_xml(text):
             return text
@@ -47,6 +53,7 @@ class XMLAttributeMutator():
 
         for element in tree.iter():
             element.attrib = {"<tag>": "</tag>" * repeat}
+
 
         return ET.tostring(tree)
     
@@ -64,9 +71,14 @@ class XMLAttributeMutator():
 # number of 'input'
 class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
+
+        if len(text) * repeat > 10000:
+            return text
+        
+        if not try_xml(text):
+            return text
 
         if not try_xml(text):
             return text
@@ -92,9 +104,11 @@ class XMLhrefAttributeMutator(BaseMutator):
 # mulitplied by the number of 'input'
 class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
+
+        if len(text) * repeat > 10000:
+            return text
 
         if not try_xml(text):
             return text
@@ -128,16 +142,17 @@ class XMLTagMutator():
 # Modifies the Root tag by the number of times from the 'input'
 class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
 
         if not try_xml(text):
             return text
 
-        
         root = XMLRootTagMutator.get_RootTag(text)
+
+        if len(text) + ("<tag>" * repeat) > 10000:
+            return text
+        
         tree = ET.fromstring(text)
         for elem in tree.iter():
             if elem.tag == root.tag:
@@ -165,9 +180,11 @@ class XMLRootTagMutator(BaseMutator):
 # by the number of times from the 'input'.
 class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        # repeat = min(repeat, 10000)
-        repeat = 100
+        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        repeat = min(repeat, 10000)
+        
+        if len(text) * repeat > 10000:
+            return text
 
         if not try_xml(text):
             return text

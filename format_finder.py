@@ -28,6 +28,7 @@ def try_csv(text: bytes) -> bool:
         return False
     return True
 
+
 def try_xml(text: bytes) -> bool:
     """
     Attempt to decode as xml. Returns if it was successful.
@@ -39,6 +40,7 @@ def try_xml(text: bytes) -> bool:
     except:
         return False
     return True
+
 
 def try_jpg(text: bytes) -> bool:
     """
