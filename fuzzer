@@ -53,12 +53,10 @@ def get_mutators(text):
             JsonListRepeatMutator(), JsonEntryRepeatMutator(), 
             JsonChangeTypeMutator()] * 3)
 
-    if format_finder.try_xml(input):
+    if format_finder.try_xml(text):
         mutators.extend([XMLOverFlowMutator(), XMLAttributeMutator(),
             XMLhrefAttributeMutator(), XMLTagMutator(), XMLRootTagMutator(),
             XMLChildrenMutator()] * 2)
-        # mutators.extend([XMLChildrenMutator()])
-        # print(XMLChildrenMutator().get_mutation(text, input))
 
     if format_finder.try_jpg(text):
         #mutators.append(JPGMutator())
