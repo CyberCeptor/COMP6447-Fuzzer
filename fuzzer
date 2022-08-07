@@ -65,6 +65,8 @@ def get_mutators(text):
     if format_finder.try_jpg(text):
         mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
             JPEGHeightMutator()] * 2)
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
     if format_finder.try_elf(text):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
