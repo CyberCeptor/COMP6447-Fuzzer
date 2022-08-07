@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(repeat, 1000)
         xmlTemplate="""
         {tag1}
             {input1}
@@ -38,6 +38,9 @@ class XMLAttributeMutator():
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
         repeat = min(repeat, 10000)
 
+        if not try_xml(text):
+            return text
+
         tree = ET.fromstring(text)
 
         for element in tree.iter():
@@ -61,6 +64,8 @@ class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
         repeat = min(repeat, 10000)
+        if not try_xml(text):
+            return text
         tree = ET.fromstring(text)
         for element in tree.iter():
             if 'href' in element.attrib:
@@ -84,6 +89,8 @@ class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
         repeat = min(repeat, 10000)
+        if not try_xml(text):
+            return text
         tree = ET.fromstring(text)
         tags_list = XMLTagMutator.get_XMLTags(text)
         for tag in tags_list:
@@ -115,6 +122,8 @@ class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
         repeat = min(repeat, 10000)
+        if not try_xml(text):
+            return text
         root = XMLRootTagMutator.get_RootTag(text)
         tree = ET.fromstring(text)
         for elem in tree.iter():
@@ -145,7 +154,8 @@ class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
         repeat = min(repeat, 10000)
-        
+        if not try_xml(text):
+            return text
         tree = ET.fromstring(text)
         new_tree = copy.deepcopy(tree)
         for i in range(0, repeat):
