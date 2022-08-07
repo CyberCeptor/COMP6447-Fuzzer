@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from io import FileIO
+from io import FileIO, StringIO
 import subprocess
 import sys
 from time import sleep
@@ -267,12 +267,15 @@ def try_simple():
 
 def main():
     try:
+        sys.stderr = StringIO()
         try_simple()
         fuzz()
     except Exception as e:
         print(e.args)
         # Marker that we finished.
         # program exit will kill all the threads
+    finally:
+        sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
     # thread_run()
