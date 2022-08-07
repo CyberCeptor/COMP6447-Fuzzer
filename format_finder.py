@@ -40,6 +40,7 @@ def try_xml(text: bytes) -> bool:
         return False
     return True
 
+
 def try_jpg(text: bytes) -> bool:
     """
     Attempt to decode as jpg. Returns if it was successful.

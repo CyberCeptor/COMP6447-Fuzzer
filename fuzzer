@@ -187,6 +187,7 @@ def thread_run():
     os.kill(gdb_instance.pid, signal.SIGKILL)
 
 def thread_run_no_gdb():
+
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(1, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
@@ -225,6 +226,7 @@ def fuzz():
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
+                
                 t = threading.Thread(target=thread_run, daemon=True)
                 t.start()
                 t = threading.Thread(target=thread_run_no_gdb, daemon=True)
@@ -301,5 +303,4 @@ def main():
         sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
-    # thread_run()
     main()
