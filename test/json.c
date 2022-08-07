@@ -41,7 +41,6 @@ int main(void)
     puts("Just type away and at the close of the object your json will be printed!");
 
     char *user = read_in();
-    puts(user);
     cJSON *json = cJSON_Parse(user);
     free(user);
     char *out = cJSON_Print(json);
