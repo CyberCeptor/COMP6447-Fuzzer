@@ -33,7 +33,7 @@ def write_out_bad(text: bytes, reason: str):
     it immediately and to prevent multiple writers.
     """
     lock.acquire() # never release so that nothing else can possibly write out.
-    print('v bad')
+    
     print("Crash caused by:", reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
@@ -67,11 +67,11 @@ def get_mutators(text):
     if format_finder.try_elf(text):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
             ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
-        print('its a binary')
+        
     if format_finder.try_pdf(input):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
             ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
-        print('its a pdf')
+        
     return mutators
 
 command_str = breakpoint_finder.gdb_command_str(program)

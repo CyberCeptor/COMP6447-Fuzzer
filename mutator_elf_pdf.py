@@ -7,7 +7,7 @@ class ELFPDFInsertMutator(BaseMutator):
         index = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         insert = int.from_bytes(input[1].tobytes()[2:7], "little") % len(text)
 
-        if len(text) > 10000: return text
+        if len(text) >= 10000: return text
         return text[:index] + insert.to_bytes(5, "little") + text[index:]
 
     def get_dimension(self) -> "int":
@@ -26,7 +26,7 @@ class ELFPDFReplaceMutator(BaseMutator):
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
         insert = int.from_bytes(input[2].tobytes()[2:6], "little") % len(text)
 
-        if len(text) > 10000: return text
+        if len(text) >= 10000: return text
         if end < start:
             return text[:end] + insert.to_bytes(4, "little") + text[start:]
         else:
@@ -46,7 +46,7 @@ class ELFPDFAppendMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
-        if len(text) > 10000: return text
+        if len(text) >= 10000: return text
 
         if end < start:
             return text[:end] + text[start:] + text[end:start]
@@ -67,7 +67,7 @@ class ELFPDFShuffleMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
-        if len(text) > 10000: return text
+        if len(text) >= 10000: return text
 
         if end < start:
             shuffled = bytearray(text[end:start])
@@ -92,9 +92,11 @@ class ELFPDFRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
-        if len(text) > 10000: return text
 
         multiplier = int.from_bytes(input[2].tobytes()[2:4], "little")
+        multiplier = min(multiplier, 5000) # Cap at 5k
+
+        if len(text) * multiplier >= 10000: return text
 
         if end < start:
             return text[:end] + text[end:start] * multiplier + text[start:]
