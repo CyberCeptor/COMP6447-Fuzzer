@@ -137,6 +137,8 @@ class JsonListRepeatMutator(BaseMutator):
         list_index = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         multiplier = int.from_bytes(input[1].tobytes()[2:4], "little")
 
+        if len(text) * multiplier > 10000: return text
+
         if not try_json(text):
             return text
         j = json.loads(text)
@@ -161,6 +163,8 @@ class JsonEntryRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         key_index = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         multiplier = int.from_bytes(input[1].tobytes()[2:4], "little")
+
+        if len(text) * multiplier > 10000: return text
 
         if not try_json(text):
             return text
