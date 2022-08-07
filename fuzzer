@@ -19,6 +19,7 @@ from mutator_json import *
 from mutator_csv import *
 from mutator_xml import *
 from mutator_elf_pdf import *
+from mutator_jpeg import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -33,7 +34,7 @@ def write_out_bad(text: bytes, reason: str):
     it immediately and to prevent multiple writers.
     """
     lock.acquire() # never release so that nothing else can possibly write out.
-    print('v bad')
+    
     print("Crash caused by:", reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
@@ -62,16 +63,17 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        #mutators.append(JPGMutator())
-        pass
+        mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
+            JPEGHeightMutator()] * 2)
+        
     if format_finder.try_elf(text):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
-            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
-        print('its a binary')
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
+        
     if format_finder.try_pdf(input):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
-            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
-        print('its a pdf')
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
+        
     return mutators
 
 command_str = breakpoint_finder.gdb_command_str(program)
