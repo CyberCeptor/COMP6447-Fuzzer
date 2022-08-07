@@ -303,5 +303,4 @@ def main():
         sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
-    # thread_run()
     main()
