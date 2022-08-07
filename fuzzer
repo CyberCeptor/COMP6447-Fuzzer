@@ -53,8 +53,7 @@ def get_mutators(text):
         #mutators.append(JPGMutator())
         pass
     if format_finder.try_elf(text):
-        #mutators.append(ELFMutator())
-        pass
+        mutators.extend(ELFInsertMutator(), ELFAppendMutator(), ELFShuffleMutator())
     return mutators
 
 command_str = breakpoint_finder.gdb_command_str(program)
