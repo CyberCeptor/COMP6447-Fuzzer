@@ -178,10 +178,12 @@ def thread_run():
     gdb_instance.kill()
 
 def thread_run_no_gdb():
+
     # get a random sequence of mutators to apply.
-    num_choices = random.randrange(0, len(mutators) * 2)
+    num_choices = random.randrange(1, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
     method_name = get_name(methods)
+
     if get_dim(methods) < 1:
         return
 
@@ -220,6 +222,7 @@ def fuzz():
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
+
                 t = threading.Thread(target=thread_run, daemon=True)
                 t.start()
                 t = threading.Thread(target=thread_run_no_gdb, daemon=True)
