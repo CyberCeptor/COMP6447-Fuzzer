@@ -1,7 +1,8 @@
 import csv
 import io
+import numpy as np
 from mutator_base import BaseMutator
-from format_finder import try_json
+from format_finder import try_csv
 
 class CSVRepeatRowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -126,7 +127,7 @@ class CSVCellMultiplierMutator(BaseMutator):
         c = list(csv.reader(text))
         if not r_index < len(c) or not c_index < len(c[r_index]):
             return text
-        if isdecimal(c[r_index][c_index]):
+        if is_int(c[r_index][c_index]):
             multiplier = (input[2] * 2 - 1) * multiplier
             c[r_index][c_index] = str(int(c[r_index][c_index]) * multiplier)
         elif is_float(c[r_index][c_index]):
@@ -169,13 +170,13 @@ class CSVEmptyCellMutator(BaseMutator):
         """
         return 2
 
-def to_csv(list: mutated) -> bytes:
+def to_csv(mutated: list) -> bytes:
         f = io.StringIO()
         w = csv.writer(f)
         w.writerows(mutated)
         return f.getvalue().encode()
 
-def extend_str(str: string, int: length) -> str:
+def extend_str(string: str, length: int) -> str:
     if string == "":
         return ""
     new_str = []
@@ -186,12 +187,17 @@ def extend_str(str: string, int: length) -> str:
                 return ''.join(new_str)
             new_str.append(char)
             i += 1   
-            
 
-def is_float(str: value) -> boolean:
+def is_float(value: str) -> bool:
     try:
         float(value)
         return True
     except:
-        return False       
+        return False
 
+def is_int(value: str) -> bool:
+    try:
+        int(value)
+        return True
+    except:
+        return False

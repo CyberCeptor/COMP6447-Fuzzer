@@ -24,13 +24,14 @@ with open(input, "rb") as f:
     sample_text = f.read()
 
 lock = threading.Lock()
-def write_out_bad(text: bytes):
+def write_out_bad(text: bytes, reason: str):
     """
     Write out the failing text. Also acquire a lock and kill the fuzzer to stop
     it immediately and to prevent multiple writers.
     """
     lock.acquire() # never release so that nothing else can possibly write out.
     print('v bad')
+    print(reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
         f.flush()
@@ -75,7 +76,6 @@ def get_until_gdb(io: FileIO) -> bytes:
         sleep(0.5)
         io.seek(0)
         txt = io.readall()
-        #print(txt)
     io.truncate(0)
     io.seek(0)
     return txt
@@ -115,7 +115,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
 
         if exit_code not in [b"0", b"1"]:
             # Found a crash so write it out and kill the fuzzer.
-            write_out_bad(input)
+            write_out_bad(input, "")
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
         print("breakpoint score:", count)
@@ -180,7 +180,7 @@ def thread_run_no_gdb():
             p = subprocess.run(program, input=input,
                 timeout=0.5, capture_output=True)
             if p.returncode not in [0, 1]:
-                write_out_bad(input)
+                write_out_bad(input, "")
         finally:
             return
     def timer_expire():
@@ -220,8 +220,7 @@ def try_empty():
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
-            print("\nEmpty file caused crash.")
-            write_out_bad(b"")
+            write_out_bad(b"", "Empty file caused crash.")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
@@ -233,8 +232,7 @@ def try_repeat():
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
-                print(f"\nSample input repeated {repeat} times caused crash.")
-                write_out_bad(input)
+                write_out_bad(input, f"Sample input repeated {repeat} times caused crash.")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
@@ -244,8 +242,7 @@ def try_long():
         input = b"a"*1000000
         p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
-            print("Input of 1 million characters caused crash.")
-            write_out_bad(input)
+            write_out_bad(input, "Input of 1 million characters caused crash.")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
@@ -256,8 +253,7 @@ def try_insertion_big_int():
             input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
-                print(f"Inserting a large negative int at index {idx} caused crash.")
-                write_out_bad(input)
+                write_out_bad(input, f"Inserting a large negative int at index {idx} caused crash.")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
