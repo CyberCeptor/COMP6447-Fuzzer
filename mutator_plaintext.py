@@ -1,11 +1,12 @@
+import sys
 import numpy as np
 from mutator_base import BaseMutator
 
 class RepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         repeat = int.from_bytes(input[0].tobytes()[2:4], "little")
-        repeat = min(repeat, 10000) # Cap at 10k
-        if len(text) > 50000: return text
+        repeat = min(repeat, 5000) # Cap at 5k
+        if len(text) > 10000: return text
         return text * repeat
 
     def get_dimension(self) -> "int":
@@ -14,15 +15,8 @@ class RepeatMutator(BaseMutator):
         """
         return 1
 
-class EmptyMutator(BaseMutator):
-    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        return b""
-
-    def get_dimension(self) -> "int":
-        """
-        No arguments as it's an empty string.
-        """
-        return 0
+    def get_name(self) -> "str":
+        return "Repeated input"
 
 class SubstringMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -39,6 +33,9 @@ class SubstringMutator(BaseMutator):
         Second element of vector = end index
         """
         return 2
+    
+    def get_name(self) -> "str":
+        return "Substring of input"
 
 class BitFlipMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -55,6 +52,9 @@ class BitFlipMutator(BaseMutator):
         Second element of vector = which bit inside that byte to flip
         """
         return 2
+    
+    def get_name(self) -> "str":
+        return "Random bit flip on input"
 
 class ByteFlipMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -69,3 +69,6 @@ class ByteFlipMutator(BaseMutator):
         First element of vector = which byte to flip
         """
         return 1
+
+    def get_name(self) -> "str":
+        return "Random byte flip on input"

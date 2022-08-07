@@ -1,7 +1,8 @@
 import csv
 import io
+import numpy as np
 from mutator_base import BaseMutator
-from format_finder import try_json
+from format_finder import try_csv
 
 class CSVRepeatRowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -25,6 +26,9 @@ class CSVRepeatRowMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Repeated row in csv"
+
 class CSVEmptyRowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -43,6 +47,9 @@ class CSVEmptyRowMutator(BaseMutator):
         First element of vector = which row to make empty
         """
         return 1
+
+    def get_name(self) -> "str":
+        return "Random row made empty in csv"
 
 class CSVRepeatColMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -68,6 +75,9 @@ class CSVRepeatColMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Repeated column in csv"
+
 class CSVEmptyColMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -88,6 +98,8 @@ class CSVEmptyColMutator(BaseMutator):
         """
         return 1
 
+    def get_name(self) -> "str":
+        return "Empty column in csv"
 
 class CSVEmptyColHeaderMutator(BaseMutator):
     """
@@ -102,7 +114,7 @@ class CSVEmptyColHeaderMutator(BaseMutator):
             
         t = np.transpose(list(csv.reader(text)))
         # Check for no header and no entries
-        if not index < len(t) || len(t[index]) < 1:
+        if not index < len(t) or len(t[index]) < 1:
             return text
         
         t[index] = t[index][0] + ([""] * len(t[index] - 1))
@@ -114,6 +126,9 @@ class CSVEmptyColHeaderMutator(BaseMutator):
         """
         return 1
 
+    def get_name(self) -> "str":
+        return "Empty column with header in csv"
+
 class CSVCellMultiplierMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         r_index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -124,9 +139,9 @@ class CSVCellMultiplierMutator(BaseMutator):
             return text
             
         c = list(csv.reader(text))
-        if not r_index < len(c) || not c_index < len(c[r_index]):
+        if not r_index < len(c) or not c_index < len(c[r_index]):
             return text
-        if isdecimal(c[r_index][c_index]):
+        if is_int(c[r_index][c_index]):
             multiplier = (input[2] * 2 - 1) * multiplier
             c[r_index][c_index] = str(int(c[r_index][c_index]) * multiplier)
         elif is_float(c[r_index][c_index]):
@@ -142,11 +157,14 @@ class CSVCellMultiplierMutator(BaseMutator):
         
     def get_dimension(self) -> "int":
         """
-        First element of vector = the row of the cell to make empty
-        Second element of vector = the col of the cell to make empty
+        First element of vector = the row of the cell
+        Second element of vector = the col of the cell
         Third element of vector = the value of the multiplier
         """
         return 3
+
+    def get_name(self) -> "str":
+        return "Multiply a cell in csv"
 
 class CSVEmptyCellMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -157,7 +175,7 @@ class CSVEmptyCellMutator(BaseMutator):
             return text
             
         c = list(csv.reader(text))
-        if not r_index < len(c) || not c_index < len(c[r_index]):
+        if not r_index < len(c) or not c_index < len(c[r_index]):
             return text
         c[r_index][c_index] = ""
         return to_csv(c)
@@ -169,13 +187,16 @@ class CSVEmptyCellMutator(BaseMutator):
         """
         return 2
 
-def to_csv(list: mutated) -> bytes:
+    def get_name(self) -> "str":
+        return "Empty cell in csv"
+
+def to_csv(mutated: list) -> bytes:
         f = io.StringIO()
         w = csv.writer(f)
         w.writerows(mutated)
         return f.getvalue().encode()
 
-def extend_str(str: string, int length) -> str:
+def extend_str(string: str, length: int) -> str:
     if string == "":
         return ""
     new_str = []
@@ -186,12 +207,17 @@ def extend_str(str: string, int length) -> str:
                 return ''.join(new_str)
             new_str.append(char)
             i += 1   
-            
 
-def is_float(str: value) -> boolean:
+def is_float(value: str) -> bool:
     try:
         float(value)
         return True
     except:
-        return False       
+        return False
 
+def is_int(value: str) -> bool:
+    try:
+        int(value)
+        return True
+    except:
+        return False

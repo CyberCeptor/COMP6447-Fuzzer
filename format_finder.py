@@ -1,4 +1,7 @@
 
+from io import StringIO
+
+
 def try_json(text: bytes) -> bool:
     """
     Attempt to decode as json. Returns if it was successful.
@@ -30,9 +33,9 @@ def try_xml(text: bytes) -> bool:
     Attempt to decode as xml. Returns if it was successful.
     Uses defusedxml because xml is vulnerable to bombs.
     """
-    from defusedxml.ElementTree import parse
+    import xml.etree.ElementTree as ET
     try:
-        parse(text.splitlines())
+        ET.fromstring(text)
     except:
         return False
     return True

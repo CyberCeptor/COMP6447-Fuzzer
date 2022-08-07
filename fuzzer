@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from io import FileIO
+from io import FileIO, StringIO
 import subprocess
 import sys
 from time import sleep
@@ -10,11 +10,12 @@ import _thread as thread
 import random
 from tempfile import TemporaryFile
 from scipy.optimize import minimize, Bounds
-from combiner import apply, get_dim
+from combiner import apply, get_dim, get_name
 import breakpoint_finder
-import multiprocessing
 from mutator_plaintext import *
 from mutator_json import *
+from mutator_csv import *
+from mutator_xml import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -23,34 +24,40 @@ with open(input, "rb") as f:
     sample_text = f.read()
 
 lock = threading.Lock()
-def write_out_bad(text: bytes):
+def write_out_bad(text: bytes, reason: str):
     """
     Write out the failing text. Also acquire a lock and kill the fuzzer to stop
     it immediately and to prevent multiple writers.
     """
     lock.acquire() # never release so that nothing else can possibly write out.
     print('v bad')
+    print("Crash caused by:", reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
+        f.flush()
     thread.interrupt_main()
 
 def get_mutators(text):
     # Always have the plaintext ones.
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
         RepeatMutator()]
+
     if format_finder.try_csv(text):
-        mutators.append(CSVRepeatRowMutator())
-        mutators.append(CSVEmptyRowMutator())
-        mutators.append(CSVRepeatColMutator())
-        mutators.append(CSVEmptyColMutator())
-        mutators.append(CSVEmptyColHeaderMutator())
-        mutators.append(CSVCellMultiplierMutator())
-        mutators.append(CSVEmptyCellMutator())
+        mutators.extend([CSVRepeatRowMutator(), CSVEmptyRowMutator(),
+            CSVRepeatColMutator(), CSVEmptyColMutator(), CSVEmptyColHeaderMutator(),
+            CSVCellMultiplierMutator(), CSVEmptyCellMutator()] * 2)
+
     if format_finder.try_json(text):
-        mutators.extend([JsonIntMutator(), JsonFloatMutator()] * 3)
+        mutators.extend([JsonIntMutator(), JsonExtremeIntMutator(), 
+            JsonFloatInfMutator(), JsonFloatNanMutator(), 
+            JsonListRepeatMutator(), JsonEntryRepeatMutator(), 
+            JsonChangeTypeMutator()] * 3)
+
     if format_finder.try_xml(text):
-        #mutators.append(XMLMutator())
-        pass
+        mutators.extend([XMLOverFlowMutator(), XMLAttributeMutator(),
+            XMLhrefAttributeMutator(), XMLTagMutator(), XMLRootTagMutator(),
+            XMLChildrenMutator()] * 2)
+
     if format_finder.try_jpg(text):
         #mutators.append(JPGMutator())
         pass
@@ -61,8 +68,6 @@ def get_mutators(text):
 
 command_str = breakpoint_finder.gdb_command_str(program)
 mutators = get_mutators(sample_text)
-
-CRASH_VALUE = -100000000
 
 def get_until_gdb(io: FileIO) -> bytes:
     """
@@ -75,12 +80,11 @@ def get_until_gdb(io: FileIO) -> bytes:
         sleep(0.5)
         io.seek(0)
         txt = io.readall()
-        #print(txt)
     io.truncate(0)
     io.seek(0)
     return txt
 
-def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO") -> int:
+def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO", method_name: str) -> int:
     # Run and count breakpoints hit for the given input.
     # No resetting needed because the run command does that for us.
 
@@ -94,7 +98,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
     timer = threading.Timer(5.0, gdb_instance.kill)
     try:
         timer.start()
-        gdb_instance.stdin.write(f'run < /tmp/input{curr_thread} > /dev/null\n'.encode())
+        gdb_instance.stdin.write(f'run < /tmp/input{curr_thread} &> /dev/null\n'.encode())
         gdb_instance.stdin.flush()
         # Wait for program to finish.
         get_until_gdb(out_pipe)
@@ -112,14 +116,14 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         exit_code = get_until_gdb(out_pipe)
         exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
         #print('exit code:', exit_code)
+        timer.cancel()
 
-        if exit_code != b"0":
+        if exit_code not in [b"0", b"1"]:
             # Found a crash so write it out and kill the fuzzer.
-            write_out_bad(input)
+            write_out_bad(input, method_name)
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
-        #print("breakpoint score:", count)
-        #thread.interrupt_main()
+        print("breakpoint score:", count)
     finally:
         timer.cancel()
 
@@ -129,9 +133,10 @@ def thread_run():
     # make gdb instance. Apply breakpoints
 
     out_pipe = TemporaryFile(buffering=0)
+    err_pipe = TemporaryFile(buffering=0)
 
     gdb_instance = subprocess.Popen(['gdb', '-q', '--nx', program],
-        stdin=subprocess.PIPE, stdout=out_pipe)
+        stdin=subprocess.PIPE, stdout=out_pipe, stderr=err_pipe)
 
     gdb_instance.stdin.write(b"set logging on\n")
 
@@ -151,9 +156,10 @@ def thread_run():
     methods = random.choices(mutators, k=num_choices)
     if get_dim(methods) < 1:
         return
+    method_name = get_name(methods)
 
     def objective(vec):
-        return count_coverage(gdb_instance, apply(sample_text, methods, vec), out_pipe)
+        return count_coverage(gdb_instance, apply(sample_text, methods, vec), out_pipe, method_name)
     def timer_expire():
         raise TimeoutError()
     timer = threading.Timer(30.0, timer_expire)
@@ -166,29 +172,34 @@ def thread_run():
         return
 
     out_pipe.close()
+    err_pipe.close()
     gdb_instance.kill()
 
 def thread_run_no_gdb():
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(0, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
+    method_name = get_name(methods)
     if get_dim(methods) < 1:
         return
 
     def objective(vec):
         try:
-            subprocess.run(program, input=apply(sample_text, methods, vec),
+            input = apply(sample_text, methods, vec)
+            p = subprocess.run(program, input=input,
                 timeout=0.5, capture_output=True)
+            if p.returncode not in [0, 1]:
+                write_out_bad(input, method_name)
         finally:
-            return -random.random()
+            return
     def timer_expire():
         raise TimeoutError()
     timer = threading.Timer(5.0, timer_expire)
-    # Random walk for minimisation. Just try anything really for 5 seconds.
-    bounds = Bounds(0, 1)
+    # Random walk for 5 seconds.
     try:
         timer.start()
-        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds)
+        while True:
+            objective(np.random.rand(get_dim(methods)))
     except TimeoutError:
         return
 
@@ -210,18 +221,15 @@ def fuzz():
                 t.start()
                 t = threading.Thread(target=thread_run_no_gdb, daemon=True)
                 t.start()
-                sys.stdout.write(".")
-                sys.stdout.flush()
             sleep(1.0)
         except KeyboardInterrupt:
-            print("Exiting")
             break
 
 def try_empty():
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
-        if p.returncode != 0:
-            write_out_bad(b"")
+        if p.returncode not in [0, 1]:
+            write_out_bad(b"", "Empty file")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
@@ -232,26 +240,80 @@ def try_repeat():
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-            if p.returncode != 0:
-                write_out_bad(input)
+            if p.returncode not in [0, 1]:
+                write_out_bad(input, f"Sample input repeated {repeat} times")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
+
+def try_long():
+    try:
+        input = b"a"*1000000
+        p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+        if p.returncode not in [0, 1]:
+            write_out_bad(input, "Input of 1 million characters")
+    except subprocess.TimeoutExpired:
+        # timed out.
+        pass
+
+def try_insertion_big_int():
+    for idx in range(len(sample_text)):
+        try:
+            input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
+            p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
+            if p.returncode not in [0, 1]:
+                write_out_bad(input, f"Inserting a large negative int at index {idx}")
+        except subprocess.TimeoutExpired:
+            # timed out.
+            pass
+
+def try_xmlbomb():
+    xmlbomb = """
+        <?xml version="1.0"?>
+        <!DOCTYPE lolz [
+        <!ENTITY lol "lol">
+        <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+        <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+        <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+        <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
+        <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
+        <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
+        <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
+        <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
+        <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
+        <!ENTITY lolz "&lol9;">
+        ]>
+        <root>&lolz;</root>
+        """
+    
+    try:
+        p = subprocess.run(program, input = xmlbomb, timeout=1.0, capture_output=True)
+        if p.returncode != 0:
+            write_out_bad(xmlbomb, "XML bomb")
+    except subprocess.TimeoutExpired:
+        pass
+
 
 def try_simple():
     # Start threads for the simple cases
     threading.Thread(target=try_empty, daemon=True).start()
     threading.Thread(target=try_repeat, daemon=True).start()
+    threading.Thread(target=try_long, daemon=True).start()
+    threading.Thread(target=try_insertion_big_int, daemon=True).start()
+    threading.Thread(target=try_xmlbomb, daemon=True).start()
 
 def main():
     try:
+        sys.stderr = StringIO()
         try_simple()
         fuzz()
     except Exception as e:
         print(e.args)
         # Marker that we finished.
         # program exit will kill all the threads
+    finally:
+        sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
-    #thread_run()
+    # thread_run()
     main()
