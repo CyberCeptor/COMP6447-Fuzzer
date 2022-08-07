@@ -16,6 +16,7 @@ from mutator_plaintext import *
 from mutator_json import *
 from mutator_csv import *
 from mutator_xml import *
+from mutator_jpeg import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -59,8 +60,11 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        #mutators.append(JPGMutator())
-        pass
+        mutators.append(JPEGFilenameMutator())
+        mutators.append(JPEGSizeMutator())
+        mutators.append(JPEGWidthMutator())
+        mutators.append(JPEGHeightMutator())
+        
     if format_finder.try_elf(text):
         #mutators.append(ELFMutator())
         pass
