@@ -9,7 +9,7 @@ exploited.
 This fuzzer is written in Python 3 and runs on a Linux operating system.
 
 1. Installing dependencies
-   `pip3 install defusedxml` - for xml based mutations.
+   `./install.sh`
 2. Clone the repository
 
 ## Usage
