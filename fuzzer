@@ -19,6 +19,7 @@ from mutator_json import *
 from mutator_csv import *
 from mutator_xml import *
 from mutator_elf_pdf import *
+from mutator_jpeg import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -62,15 +63,16 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        #mutators.append(JPGMutator())
-        pass
+        mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
+            JPEGHeightMutator()] * 2)
+        
     if format_finder.try_elf(text):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
-            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
     if format_finder.try_pdf(input):
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
-            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
     return mutators
 
@@ -187,7 +189,6 @@ def thread_run():
     os.kill(gdb_instance.pid, signal.SIGKILL)
 
 def thread_run_no_gdb():
-
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(1, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
@@ -226,7 +227,6 @@ def fuzz():
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
-                
                 t = threading.Thread(target=thread_run, daemon=True)
                 t.start()
                 t = threading.Thread(target=thread_run_no_gdb, daemon=True)
