@@ -46,9 +46,6 @@ class XMLAttributeMutator():
         if not try_xml(text):
             return text
 
-        if not try_xml(text):
-            return text
-
         tree = ET.fromstring(text)
 
         for element in tree.iter():
@@ -75,9 +72,6 @@ class XMLhrefAttributeMutator(BaseMutator):
         repeat = min(repeat, 10000)
 
         if len(text) * repeat > 10000:
-            return text
-        
-        if not try_xml(text):
             return text
 
         if not try_xml(text):
