@@ -1,9 +1,7 @@
 import copy
-import sys
 from mutator_base import BaseMutator
 import numpy as np
 from format_finder import try_xml
-import xml.dom.minidom as XML
 
 # https://docs.python.org/3/library/xml.etree.elementtree.html
 import xml.etree.ElementTree as ET
@@ -12,15 +10,14 @@ import xml.etree.ElementTree as ET
 # by the number from 'input'.
 class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
         xmlTemplate="""
         {tag1}
             {input1}
             {input2}
         {tag2}
         """
-        if (len(xmlTemplate) * repeat) < 10000:
+        if len(xmlTemplate) * repeat < 10000:
             return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat)).encode()
 
         return text
@@ -37,8 +34,8 @@ class XMLOverFlowMutator(BaseMutator):
 # mulitplied by the number from 'input'
 class XMLAttributeMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
+
         
         if len(text) * repeat > 10000:
             return text
@@ -71,8 +68,7 @@ class XMLAttributeMutator():
 # number of 'input'
 class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if len(text) * repeat > 10000:
             return text
@@ -104,8 +100,7 @@ class XMLhrefAttributeMutator(BaseMutator):
 # mulitplied by the number of 'input'
 class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if len(text) * repeat > 10000:
             return text
@@ -142,8 +137,7 @@ class XMLTagMutator():
 # Modifies the Root tag by the number of times from the 'input'
 class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if not try_xml(text):
             return text
@@ -180,8 +174,7 @@ class XMLRootTagMutator(BaseMutator):
 # by the number of times from the 'input'.
 class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
         
         if len(text) * repeat > 10000:
             return text
