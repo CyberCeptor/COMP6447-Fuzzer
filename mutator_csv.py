@@ -26,6 +26,9 @@ class CSVRepeatRowMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Repeated row in csv"
+
 class CSVEmptyRowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -44,6 +47,9 @@ class CSVEmptyRowMutator(BaseMutator):
         First element of vector = which row to make empty
         """
         return 1
+
+    def get_name(self) -> "str":
+        return "Random row made empty in csv"
 
 class CSVRepeatColMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -69,6 +75,9 @@ class CSVRepeatColMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Repeated column in csv"
+
 class CSVEmptyColMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -89,6 +98,8 @@ class CSVEmptyColMutator(BaseMutator):
         """
         return 1
 
+    def get_name(self) -> "str":
+        return "Empty column in csv"
 
 class CSVEmptyColHeaderMutator(BaseMutator):
     """
@@ -114,6 +125,9 @@ class CSVEmptyColHeaderMutator(BaseMutator):
         First element of vector = which column to make empty
         """
         return 1
+
+    def get_name(self) -> "str":
+        return "Empty column with header in csv"
 
 class CSVCellMultiplierMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -143,11 +157,14 @@ class CSVCellMultiplierMutator(BaseMutator):
         
     def get_dimension(self) -> "int":
         """
-        First element of vector = the row of the cell to make empty
-        Second element of vector = the col of the cell to make empty
+        First element of vector = the row of the cell
+        Second element of vector = the col of the cell
         Third element of vector = the value of the multiplier
         """
         return 3
+
+    def get_name(self) -> "str":
+        return "Multiply a cell in csv"
 
 class CSVEmptyCellMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -169,6 +186,9 @@ class CSVEmptyCellMutator(BaseMutator):
         Second element of vector = the col of the cell to make empty
         """
         return 2
+
+    def get_name(self) -> "str":
+        return "Empty cell in csv"
 
 def to_csv(mutated: list) -> bytes:
         f = io.StringIO()

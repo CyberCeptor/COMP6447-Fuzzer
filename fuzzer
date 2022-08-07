@@ -10,9 +10,8 @@ import _thread as thread
 import random
 from tempfile import TemporaryFile
 from scipy.optimize import minimize, Bounds
-from combiner import apply, get_dim
+from combiner import apply, get_dim, get_name
 import breakpoint_finder
-import multiprocessing
 from mutator_plaintext import *
 from mutator_json import *
 from mutator_csv import *
@@ -31,7 +30,7 @@ def write_out_bad(text: bytes, reason: str):
     """
     lock.acquire() # never release so that nothing else can possibly write out.
     print('v bad')
-    print(reason)
+    print("Crash caused by:", reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
         f.flush()
@@ -63,8 +62,6 @@ def get_mutators(text):
 command_str = breakpoint_finder.gdb_command_str(program)
 mutators = get_mutators(sample_text)
 
-CRASH_VALUE = -100000000
-
 def get_until_gdb(io: FileIO) -> bytes:
     """
     Read from the io until the gdb command signature is reached.
@@ -80,7 +77,7 @@ def get_until_gdb(io: FileIO) -> bytes:
     io.seek(0)
     return txt
 
-def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO") -> int:
+def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO", method_name: str) -> int:
     # Run and count breakpoints hit for the given input.
     # No resetting needed because the run command does that for us.
 
@@ -112,10 +109,11 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         exit_code = get_until_gdb(out_pipe)
         exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
         #print('exit code:', exit_code)
+        timer.cancel()
 
         if exit_code not in [b"0", b"1"]:
             # Found a crash so write it out and kill the fuzzer.
-            write_out_bad(input, "")
+            write_out_bad(input, method_name)
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
         print("breakpoint score:", count)
@@ -150,9 +148,10 @@ def thread_run():
     methods = random.choices(mutators, k=num_choices)
     if get_dim(methods) < 1:
         return
+    method_name = get_name(methods)
 
     def objective(vec):
-        return count_coverage(gdb_instance, apply(sample_text, methods, vec), out_pipe)
+        return count_coverage(gdb_instance, apply(sample_text, methods, vec), out_pipe, method_name)
     def timer_expire():
         raise TimeoutError()
     timer = threading.Timer(30.0, timer_expire)
@@ -171,6 +170,7 @@ def thread_run_no_gdb():
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(0, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
+    method_name = get_name(methods)
     if get_dim(methods) < 1:
         return
 
@@ -180,7 +180,7 @@ def thread_run_no_gdb():
             p = subprocess.run(program, input=input,
                 timeout=0.5, capture_output=True)
             if p.returncode not in [0, 1]:
-                write_out_bad(input, "")
+                write_out_bad(input, method_name)
         finally:
             return
     def timer_expire():
@@ -220,7 +220,7 @@ def try_empty():
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
-            write_out_bad(b"", "Empty file caused crash.")
+            write_out_bad(b"", "Empty file")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
@@ -232,7 +232,7 @@ def try_repeat():
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
-                write_out_bad(input, f"Sample input repeated {repeat} times caused crash.")
+                write_out_bad(input, f"Sample input repeated {repeat} times")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
@@ -242,7 +242,7 @@ def try_long():
         input = b"a"*1000000
         p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
         if p.returncode not in [0, 1]:
-            write_out_bad(input, "Input of 1 million characters caused crash.")
+            write_out_bad(input, "Input of 1 million characters")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
@@ -253,7 +253,7 @@ def try_insertion_big_int():
             input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
-                write_out_bad(input, f"Inserting a large negative int at index {idx} caused crash.")
+                write_out_bad(input, f"Inserting a large negative int at index {idx}")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
