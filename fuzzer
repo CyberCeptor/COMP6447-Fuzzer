@@ -273,40 +273,12 @@ def try_insertion_big_int():
             # timed out.
             pass
 
-def try_xmlbomb():
-    xmlbomb = """
-        <?xml version="1.0"?>
-        <!DOCTYPE lolz [
-        <!ENTITY lol "lol">
-        <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
-        <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
-        <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
-        <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
-        <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
-        <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
-        <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
-        <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
-        <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
-        <!ENTITY lolz "&lol9;">
-        ]>
-        <root>&lolz;</root>
-        """
-    
-    try:
-        p = subprocess.run(program, input = xmlbomb, timeout=1.0, capture_output=True)
-        if p.returncode != 0:
-            write_out_bad(xmlbomb, "XML bomb")
-    except subprocess.TimeoutExpired:
-        pass
-
-
 def try_simple():
     # Start threads for the simple cases
     threading.Thread(target=try_empty, daemon=True).start()
     threading.Thread(target=try_repeat, daemon=True).start()
     threading.Thread(target=try_long, daemon=True).start()
     threading.Thread(target=try_insertion_big_int, daemon=True).start()
-    threading.Thread(target=try_xmlbomb, daemon=True).start()
 
 def main():
     try:
