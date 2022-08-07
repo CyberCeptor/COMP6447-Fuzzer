@@ -25,3 +25,10 @@ class BaseMutator(metaclass=ABCMeta):
         Should be an integer saying how many dimensions are required.
         """
         raise NotImplementedError("Implement this")
+
+    @abstractmethod
+    def get_name(self) -> "str":
+        """
+        Get the name of this mutator.
+        """
+        raise NotImplementedError("Implement this")

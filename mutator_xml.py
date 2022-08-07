@@ -20,7 +20,7 @@ class XMLOverFlowMutator(BaseMutator):
             {input2}
         {tag2}
         """
-        if len(xmlTemplate) * repeat < 10000:
+        if (len(xmlTemplate) * repeat) < 10000:
             return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat)).encode()
 
         return text
@@ -41,6 +41,9 @@ class XMLAttributeMutator():
         repeat = min(repeat, 10000)
         
         if len(text) * repeat > 10000:
+            return text
+
+        if not try_xml(text):
             return text
 
         if not try_xml(text):
@@ -74,6 +77,9 @@ class XMLhrefAttributeMutator(BaseMutator):
         if len(text) * repeat > 10000:
             return text
         
+        if not try_xml(text):
+            return text
+
         if not try_xml(text):
             return text
 

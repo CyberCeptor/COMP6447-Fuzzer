@@ -28,7 +28,8 @@ def try_csv(text: bytes) -> bool:
         return False
     return True
 
-def try_xml(text) -> bool:
+
+def try_xml(text: bytes) -> bool:
     """
     Attempt to decode as xml. Returns if it was successful.
     Uses defusedxml because xml is vulnerable to bombs.
@@ -59,3 +60,16 @@ def try_elf(text: bytes) -> bool:
     """
     # Is there really any other way to test?
     return text[:4] == b"\x7fELF"
+
+def try_pdf(input: str) -> bool:
+    """
+    Attempt to decode as pdf. Returns if it was successful.
+    Only returns True if the file is a PDF and is readable
+    """
+    from pdfminer.high_level import extract_text
+
+    try:
+        extract_text(input)
+        return True
+    except:
+        return False
