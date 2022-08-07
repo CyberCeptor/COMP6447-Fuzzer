@@ -41,17 +41,13 @@ def get_mutators(text):
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
         RepeatMutator()]
     if format_finder.try_csv(text):
-        mutators.append(CSVRepeatRowMutator())
-        mutators.append(CSVEmptyRowMutator())
-        mutators.append(CSVRepeatColMutator())
-        mutators.append(CSVEmptyColMutator())
-        mutators.append(CSVEmptyColHeaderMutator())
-        mutators.append(CSVCellMultiplierMutator())
-        mutators.append(CSVEmptyCellMutator())
+        #mutators.append(CSVMutator())
+        pass
     if format_finder.try_json(text):
         mutators.extend([JsonIntMutator(), JsonExtremeIntMutator(), 
-        JsonFloatNanMutator(), JsonListRepeatMutator(),
-        JsonEntryRepeatMutator(), JsonChangeTypeMutator()])
+            JsonFloatInfMutator(), JsonFloatNanMutator(), 
+            JsonListRepeatMutator(), JsonEntryRepeatMutator(), 
+            JsonChangeTypeMutator()] * 3)
     if format_finder.try_xml(text):
         #mutators.append(XMLMutator())
         pass
@@ -283,5 +279,5 @@ def main():
         # program exit will kill all the threads
 
 if __name__ == "__main__":
-    #thread_run()
+    # thread_run()
     main()
