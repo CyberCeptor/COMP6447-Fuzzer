@@ -26,4 +26,6 @@ int main(void)
         fputs(translate[x - 'a'], stdout);
     }
     putchar('\n');
+
+    return 0;
 }
