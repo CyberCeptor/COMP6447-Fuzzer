@@ -76,7 +76,7 @@ class XMLhrefAttributeMutator(BaseMutator):
         tree = ET.fromstring(text)
         for element in tree.iter():
             if 'href' in element.attrib:
-                element.attrib['href'] = "%s" * repeat
+                element.attrib['href'] = "https://COMP6447rox.wtf" * repeat
 
         return ET.tostring(tree).decode()
     
