@@ -67,9 +67,6 @@ def count_unique_hits(breakpoint_output: bytes) -> float:
     """
     Count how many unique breakpoints were hit.
     """
-    # breakpoint_output = breakpoint_output.replace(b"\tsilent\n\tcontinue 1000000\n", b"")
-    # breakpoint_output = breakpoint_output.replace(b"        silent\n        continue 1000000\n", b"")
-    # breakpoint_output = breakpoint_output[:-6]
     lines = breakpoint_output.split(b"\n")[1:-1]
     count = 0
 
@@ -90,7 +87,5 @@ def count_total_hits(breakpoint_output: bytes) -> float:
     for line in lines:
         if line.startswith(b"\tbreakpoint already hit"):
             count += int(line.split(b" ")[3])
-            #count += 1
 
-    #print(breakpoint_output)
     return float(count)

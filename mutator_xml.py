@@ -12,15 +12,16 @@ import xml.etree.ElementTree as ET
 # by the number from 'input'.
 class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+        repeat = 100
         xmlTemplate="""
         {tag1}
             {input1}
             {input2}
         {tag2}
         """
-        return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat))
+        return xmlTemplate.format(tag1=("<tag>"*repeat), input1=("<input>" * repeat), input2=("</input>" * repeat), tag2=("</tag>" * repeat)).encode()
 
     """
     First element of vector, number of repetitions of the Entities in the xml.
@@ -35,13 +36,17 @@ class XMLOverFlowMutator(BaseMutator):
 # mulitplied by the number from 'input'
 class XMLAttributeMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+        repeat = 100
+
+        if not try_xml(text):
+            return text
 
         tree = ET.fromstring(text)
 
         for element in tree.iter():
-            element.attrib = {"%s": "%s" * repeat}
+            element.attrib = {"<tag>": "</tag>" * repeat}
 
         return ET.tostring(tree)
     
@@ -59,14 +64,19 @@ class XMLAttributeMutator():
 # number of 'input'
 class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+        repeat = 100
+
+        if not try_xml(text):
+            return text
+
         tree = ET.fromstring(text)
         for element in tree.iter():
             if 'href' in element.attrib:
                 element.attrib['href'] = "%s" * repeat
 
-        return ET.tostring(tree)
+        return ET.tostring(tree).decode()
     
     """
     First element of vector, number of repititions of the attribute added to the xml.
@@ -82,13 +92,18 @@ class XMLhrefAttributeMutator(BaseMutator):
 # mulitplied by the number of 'input'
 class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+        repeat = 100
+
+        if not try_xml(text):
+            return text
+
         tree = ET.fromstring(text)
         tags_list = XMLTagMutator.get_XMLTags(text)
         for tag in tags_list:
             for elem in tree.findall(tag.tag):
-                elem.tag = "%s" * repeat
+                elem.tag = "<tag>" * repeat
         return ET.tostring(tree)
 
     # Returns a list of all tags in the xml file.
@@ -113,13 +128,20 @@ class XMLTagMutator():
 # Modifies the Root tag by the number of times from the 'input'
 class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+
+        repeat = 100
+
+        if not try_xml(text):
+            return text
+
+        
         root = XMLRootTagMutator.get_RootTag(text)
         tree = ET.fromstring(text)
         for elem in tree.iter():
             if elem.tag == root.tag:
-                elem.tag = "%s" * repeat
+                elem.tag = "<tag>" * repeat
         
         tree.append(root)
         return ET.tostring(tree)
@@ -143,8 +165,12 @@ class XMLRootTagMutator(BaseMutator):
 # by the number of times from the 'input'.
 class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
-        repeat = min(repeat, 10000)
+        # repeat = int.from_bytes(input[0].tobytes()[2:7], "little")
+        # repeat = min(repeat, 10000)
+        repeat = 100
+
+        if not try_xml(text):
+            return text
         
         tree = ET.fromstring(text)
         new_tree = copy.deepcopy(tree)
