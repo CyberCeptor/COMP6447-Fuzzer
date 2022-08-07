@@ -23,3 +23,6 @@ def apply(text: bytes, mutators: "list[BaseMutator]", vec: ndarray) -> bytes:
 
 def get_dim(mutators: "list[BaseMutator]"):
     return sum(m.get_dimension() for m in mutators)
+
+def get_name(mutators: "list[BaseMutator]"):
+    return " -> ".join(m.get_name() for m in mutators)

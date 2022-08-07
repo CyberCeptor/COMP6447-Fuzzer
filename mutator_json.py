@@ -33,6 +33,9 @@ class JsonIntMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Change an int in json"
+
 class JsonExtremeIntMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         int_index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -60,6 +63,9 @@ class JsonExtremeIntMutator(BaseMutator):
         Second element of vector = what to set it to.
         """
         return 2
+
+    def get_name(self) -> "str":
+        return "Change an int to extreme values in json"
 
 class JsonFloatInfMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -92,6 +98,9 @@ class JsonFloatInfMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Change a float to +-inf in json"
+
 class JsonFloatNanMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         float_index = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -108,7 +117,7 @@ class JsonFloatNanMutator(BaseMutator):
             float_index %= json_count_dict(j, float)
             json_update_dict(j, float, float_index, multiplier, 0)
         elif isinstance(j, list):
-            int_index %= json_count_list(j, float)
+            float_index %= json_count_list(j, float)
             json_update_list(j, float, float_index, multiplier, 0)
 
         return json.dumps(j).encode()
@@ -119,6 +128,9 @@ class JsonFloatNanMutator(BaseMutator):
         Second element of vector = what to set it to.
         """
         return 2
+
+    def get_name(self) -> "str":
+        return "Change a float to nan in json"
 
 class JsonListRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -142,6 +154,9 @@ class JsonListRepeatMutator(BaseMutator):
         """
         return 2
 
+    def get_name(self) -> "str":
+        return "Repeat a list in json"
+
 class JsonEntryRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         key_index = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
@@ -163,6 +178,9 @@ class JsonEntryRepeatMutator(BaseMutator):
         Second element of vector = number to repeat
         """
         return 2
+
+    def get_name(self) -> "str":
+        return "Repeat a key in json"
 
 class JsonChangeTypeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
@@ -188,6 +206,9 @@ class JsonChangeTypeMutator(BaseMutator):
         Third element of vector = type to change to
         """
         return 3
+
+    def get_name(self) -> "str":
+        return "Change a type in json"
     
     def get_type(self, int):
         if int <= 0.2: return 'int'
