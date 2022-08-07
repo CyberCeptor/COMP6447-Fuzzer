@@ -15,6 +15,23 @@ class ELFInsertMutator(BaseMutator):
         """
         return 2
 
+class ELFReplaceMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
+        end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
+        insert = int.from_bytes(input[2].tobytes()[2:6], "little") % len(text)
+        if end < start:
+            return text[:end] + insert.to_bytes(4, "little") + text[start:]
+        else:
+            return text[:start] + insert.to_bytes(4, "little") + text[end:]
+
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = index to insert
+        First element of vector = byte to insert
+        """
+        return 3
+
 class ELFAppendMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
