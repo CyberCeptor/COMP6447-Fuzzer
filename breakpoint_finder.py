@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import re
-import sys
 import subprocess
 
 instructions = ['jbe', 'jnbe', 'jz', 'jpe', 'jne', 'jp', 'jb', 'jae', 'je',
