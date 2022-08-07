@@ -41,23 +41,23 @@ def get_mutators(text):
     # Always have the plaintext ones.
     mutators = [SubstringMutator(), BitFlipMutator(), ByteFlipMutator(),
         RepeatMutator()]
+
     if format_finder.try_csv(text):
-        #mutators.append(CSVMutator())
-        pass
+        mutators.extend([CSVRepeatRowMutator(), CSVEmptyRowMutator(),
+            CSVRepeatColMutator(), CSVEmptyColMutator(), CSVEmptyColHeaderMutator(),
+            CSVCellMultiplierMutator(), CSVEmptyCellMutator()] * 2)
+
     if format_finder.try_json(text):
         mutators.extend([JsonIntMutator(), JsonExtremeIntMutator(), 
             JsonFloatInfMutator(), JsonFloatNanMutator(), 
             JsonListRepeatMutator(), JsonEntryRepeatMutator(), 
             JsonChangeTypeMutator()] * 3)
 
-    if format_finder.try_xml(input):
-        mutators.append(XMLOverFlowMutator())
-        mutators.append(XMLAttributeMutator())
-        mutators.append(XMLhrefAttributeMutator())
-        mutators.append(XMLTagMutator())
-        mutators.append(XMLRootTagMutator())
-        mutators.append(XMLChildrenMutator())
-        # pass
+    if format_finder.try_xml(text):
+        mutators.extend([XMLOverFlowMutator(), XMLAttributeMutator(),
+            XMLhrefAttributeMutator(), XMLTagMutator(), XMLRootTagMutator(),
+            XMLChildrenMutator()] * 2)
+
     if format_finder.try_jpg(text):
         #mutators.append(JPGMutator())
         pass

@@ -28,17 +28,16 @@ def try_csv(text: bytes) -> bool:
         return False
     return True
 
-def try_xml(input) -> bool:
+def try_xml(text: bytes) -> bool:
     """
     Attempt to decode as xml. Returns if it was successful.
     Uses defusedxml because xml is vulnerable to bombs.
     """
-    with open(input, 'r') as file:
-        import xml.dom.minidom as XML
-        try:
-            XML.parseString(file.read().strip())
-        except:
-            return False
+    import xml.etree.ElementTree as ET
+    try:
+        ET.fromstring(text)
+    except:
+        return False
     return True
 
 def try_jpg(text: bytes) -> bool:
