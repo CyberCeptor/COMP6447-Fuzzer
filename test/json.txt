@@ -1,0 +1,8 @@
+{
+    "Json, it is?": "mmmmmmm",
+    "The meaning of life, what is?": [
+        24,
+        "life",
+        "42?"
+    ]
+}
