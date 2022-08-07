@@ -124,12 +124,12 @@ class JPEGHeightMutator(BaseMutator):
 
 def extend_str(string: str, length: int) -> str:
     if string == "":
-        return ""
+        return b""
     new_str = []
     i = 0
     while (True):
         for char in string:
             if i >= length:
-                return ''.join(new_str)
+                return b''.join(new_str)
             new_str.append(char)
             i += 1

@@ -225,7 +225,9 @@ def fuzz():
         max_threads = cpus * 3 + 1
     #max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
-    threading.Timer(175.0, thread.interrupt_main).start()
+    t = threading.Timer(175.0, thread.interrupt_main)
+    t.setDaemon(True)
+    t.start()
 
     while True:
         try:

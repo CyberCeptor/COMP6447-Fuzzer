@@ -5,8 +5,12 @@ def combine(base: bytes, mutators: "list[tuple[BaseMutator, ndarray]]") -> bytes
     """
     Chain mutators together and produce a single output.
     """
+    if isinstance(base, str):
+        base = base.encode()
     for mut, vec in mutators:
         base = mut.get_mutation(base, vec)
+        if isinstance(base, str):
+            base = base.encode()
     return base
 
 def apply(text: bytes, mutators: "list[BaseMutator]", vec: ndarray) -> bytes:
