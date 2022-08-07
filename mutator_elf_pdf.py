@@ -92,10 +92,11 @@ class ELFPDFRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
-        if len(text) >= 10000: return text
 
         multiplier = int.from_bytes(input[2].tobytes()[2:4], "little")
         multiplier = min(multiplier, 5000) # Cap at 5k
+
+        if len(text) * multiplier >= 10000: return text
 
         if end < start:
             return text[:end] + text[end:start] * multiplier + text[start:]
