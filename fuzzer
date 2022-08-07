@@ -16,6 +16,7 @@ from mutator_plaintext import *
 from mutator_json import *
 from mutator_csv import *
 from mutator_xml import *
+from mutator_elf_pdf import *
 
 program = sys.argv[1]
 input = sys.argv[2]
@@ -62,7 +63,13 @@ def get_mutators(text):
         #mutators.append(JPGMutator())
         pass
     if format_finder.try_elf(text):
-        mutators.extend(ELFInsertMutator(), ELFAppendMutator(), ELFShuffleMutator())
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
+        print('its a binary')
+    if format_finder.try_pdf(input):
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()])
+        print('its a pdf')
     return mutators
 
 command_str = breakpoint_finder.gdb_command_str(program)
@@ -210,7 +217,7 @@ def fuzz():
         max_threads = 8
     else:
         max_threads = cpus * 3 + 1
-    #max_threads = 2 # for debugging purposes. Lets one thread at a time.
+    max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
     while True:
         try:
