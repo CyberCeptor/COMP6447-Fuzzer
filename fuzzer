@@ -63,8 +63,8 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
-            JPEGHeightMutator()] * 2)
+        mutators.extend([JPEGSizeMutator(), JPEGWidthMutator(), JPEGHeightMutator(),
+            JPEGMetadataBitFlipMutator(), JPEGMetadataByteFlipMutator()] * 2)
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
             ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
@@ -124,14 +124,12 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         
         # breakpoint info table.
         breakpoint_info = get_until_gdb(out_pipe)
-        #print('breakpoint info:', breakpoint_info)
 
         # get the exit code
         gdb_instance.stdin.write('print $_exitcode\n'.encode())
         gdb_instance.stdin.flush()
         exit_code = get_until_gdb(out_pipe)
         exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
-        #print('exit code:', exit_code)
         timer.cancel()
 
         if exit_code not in [b"0", b"1"]:
@@ -163,7 +161,6 @@ def thread_run():
     # Make sure the buffer is clear before going.
     out_pipe.seek(0)
     out_pipe.readall()
-    #print("start: ", out_pipe.readall())
     out_pipe.truncate(0)
     out_pipe.seek(0)
 
@@ -292,13 +289,13 @@ def try_simple():
 def main():
     try:
         sys.stderr = StringIO()
-        #print(mutators)
         try_simple()
         fuzz()
     finally:
         # Marker that we finished.
         # program exit will kill all the threads
         sys.stderr = sys.__stderr__
+        os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
 
 if __name__ == "__main__":
     main()

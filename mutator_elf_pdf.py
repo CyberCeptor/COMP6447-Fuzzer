@@ -4,6 +4,8 @@ import random
 
 class ELFPDFInsertMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         index = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         insert = int.from_bytes(input[1].tobytes()[2:7], "little") % len(text)
 
@@ -22,6 +24,8 @@ class ELFPDFInsertMutator(BaseMutator):
 
 class ELFPDFReplaceMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
         insert = int.from_bytes(input[2].tobytes()[2:6], "little") % len(text)
@@ -44,6 +48,8 @@ class ELFPDFReplaceMutator(BaseMutator):
 
 class ELFPDFAppendMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
         if len(text) >= 10000: return text
@@ -65,6 +71,8 @@ class ELFPDFAppendMutator(BaseMutator):
 
 class ELFPDFShuffleMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
         if len(text) >= 10000: return text
@@ -90,6 +98,8 @@ class ELFPDFShuffleMutator(BaseMutator):
 
 class ELFPDFRepeatMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         start = int.from_bytes(input[0].tobytes()[2:4], "little") % len(text)
         end = int.from_bytes(input[1].tobytes()[2:4], "little") % len(text)
 

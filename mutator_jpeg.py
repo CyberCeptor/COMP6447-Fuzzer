@@ -4,35 +4,6 @@ import numpy as np
 from mutator_base import BaseMutator
 from format_finder import try_jpg
 
-class JPEGFilenameMutator(BaseMutator):
-    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        length = int.from_bytes(input[0].tobytes()[2:4], "little")
-
-        if not try_jpg(text):
-            return text
-
-        image = Image.open(io.BytesIO(text))
-        length = (input[0] * 2 - 1) * length
-        try:
-            image.filename = extend_str(image.filename, length)
-        except:
-            return text
-
-        mutated = io.BytesIO()
-        image.save(mutated)
-
-        mutated.seek(0)
-        return mutated.read()
-        
-    def get_dimension(self) -> "int":
-        """
-        First element of vector = the length of the new filename
-        """
-        return 1
-
-    def get_name(self) -> "str":
-        return "Change filename mutator"
-
 class JPEGSizeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         width = int.from_bytes(input[0].tobytes()[2:4], "little")
@@ -51,7 +22,7 @@ class JPEGSizeMutator(BaseMutator):
             return text
 
         mutated = io.BytesIO()
-        image.save(mutated)
+        image.save(mutated, format="JPEG")
 
         mutated.seek(0)
         return mutated.read()
@@ -82,7 +53,7 @@ class JPEGWidthMutator(BaseMutator):
             return text
 
         mutated = io.BytesIO()
-        image.save(mutated)
+        image.save(mutated, format="JPEG")
 
         mutated.seek(0)
         return mutated.read()
@@ -112,7 +83,7 @@ class JPEGHeightMutator(BaseMutator):
             return text
 
         mutated = io.BytesIO()
-        image.save(mutated)
+        image.save(mutated, format="JPEG")
 
         mutated.seek(0)
         return mutated.read()
@@ -171,12 +142,12 @@ class JPEGMetadataByteFlipMutator(BaseMutator):
 
 def extend_str(string: str, length: int) -> str:
     if string == "":
-        return b""
+        return ""
     new_str = []
     i = 0
     while (True):
         for char in string:
             if i >= length:
-                return b''.join(new_str)
+                return ''.join(new_str)
             new_str.append(char)
             i += 1
