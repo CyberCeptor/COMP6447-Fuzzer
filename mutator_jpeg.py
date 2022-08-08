@@ -122,6 +122,28 @@ class JPEGHeightMutator(BaseMutator):
     def get_name(self) -> "str":
         return "Multiplier for height mutator"
 
+class JPEGMetadataBitMutator(BaseMutator):
+    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        if not try_jpg(text):
+            return text
+        
+        index = text.index(b"\xff\xda")
+        byte_idx = int.from_bytes(input[0].tobytes()[2:7], "big") % index
+        bit = int.from_bytes(input[1].tobytes()[2:7], "big") % 8
+        new = bytearray(text)
+        new[byte_idx] = new[byte_idx] ^ (1 << bit)
+        return bytes(new)
+        
+    def get_dimension(self) -> "int":
+        """
+        First element of vector = the byte to change
+        Second element of vector = the bit to flip
+        """
+        return 2
+
+    def get_name(self) -> "str":
+        return "Metadata Bit flipper"
+
 def extend_str(string: str, length: int) -> str:
     if string == "":
         return b""
