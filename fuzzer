@@ -21,18 +21,13 @@ from mutator_xml import *
 from mutator_elf_pdf import *
 from mutator_jpeg import *
 
-program = sys.argv[1]
-input = sys.argv[2]
-
-with open(input, "rb") as f:
-    sample_text = f.read()
-
 lock = threading.Lock()
 def write_out_bad(text: bytes, reason: str):
     """
     Write out the failing text. Also acquire a lock and kill the fuzzer to stop
     it immediately and to prevent multiple writers.
     """
+    print("v bad")
     lock.acquire() # never release so that nothing else can possibly write out.
     
     print("Crash caused by:", reason)
@@ -78,9 +73,6 @@ def get_mutators(text):
         
     return mutators
 
-command_str = breakpoint_finder.gdb_command_str(program)
-mutators = get_mutators(sample_text)
-
 def get_until_gdb(io: FileIO) -> bytes:
     """
     Read from the io until the gdb command signature is reached.
@@ -125,15 +117,17 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         # breakpoint info table.
         breakpoint_info = get_until_gdb(out_pipe)
 
-        # get the exit code
-        gdb_instance.stdin.write('print $_exitcode\n'.encode())
+        # get the exit signal
+        gdb_instance.stdin.write('print $_exitsignal\n'.encode())
         gdb_instance.stdin.flush()
-        exit_code = get_until_gdb(out_pipe)
-        exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
+        exit_signal = get_until_gdb(out_pipe)
+        exit_signal = exit_signal.split(b" ")[2].split(b"\n")[0]
         timer.cancel()
 
-        if exit_code not in [b"0", b"1"]:
-            # Found a crash so write it out and kill the fuzzer.
+        if exit_signal not in [b"6", b"void"]:
+            # 6 = abort signal which is not useful.
+            # void = no signal raised which means no crash.
+            # We found a crash so write it out and kill the fuzzer.
             write_out_bad(input, method_name)
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
@@ -143,16 +137,18 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
 
     return count
 
-def thread_run():
-    # make gdb instance. Apply breakpoints
+def thread_run(arg):
+    program = arg["program"]
+    sample_text = arg["sample_text"]
+    mutators = arg["mutators"]
+    command_str = arg["command_str"]
 
     out_pipe = TemporaryFile(buffering=0)
     err_pipe = TemporaryFile(buffering=0)
 
+    # make gdb instance. Apply breakpoints
     gdb_instance = subprocess.Popen(['gdb', '-q', '--nx', program],
         stdin=subprocess.PIPE, stdout=out_pipe, stderr=err_pipe)
-
-    #gdb_instance.stdin.write(b"set logging on\n")
 
     gdb_instance.stdin.write(command_str.encode())
     gdb_instance.stdin.flush()
@@ -188,7 +184,10 @@ def thread_run():
         err_pipe.close()
         os.kill(gdb_instance.pid, signal.SIGKILL)
 
-def thread_run_no_gdb():
+def thread_run_no_gdb(arg):
+    program = arg["program"]
+    sample_text = arg["sample_text"]
+    mutators = arg["mutators"]
     # get a random sequence of mutators to apply.
     num_choices = random.randrange(1, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
@@ -202,7 +201,7 @@ def thread_run_no_gdb():
         try:
             p = subprocess.run(program, input=input,
                 timeout=1.0, capture_output=True)
-            if p.returncode not in [0, 1]:
+            if p.returncode not in [0, 1, -6]:
                 write_out_bad(input, method_name)
         finally:
             return
@@ -213,7 +212,7 @@ def thread_run_no_gdb():
     while timer.is_alive():
         objective(np.random.rand(dim))
 
-def fuzz():
+def fuzz(arg):
     import os
     # Setting a reasonable limit so that the cpu doesn't die.
     cpus = os.cpu_count()
@@ -221,9 +220,10 @@ def fuzz():
         max_threads = 8
     else:
         max_threads = cpus * 3 + 1
-    #max_threads = 2 # for debugging purposes. Lets one thread at a time.
+    #max_threads = 3 # for debugging purposes. Lets one thread at a time.
 
-    t = threading.Timer(175.0, thread.interrupt_main)
+    kill = lambda: (print("Time limit reached"), thread.interrupt_main())
+    t = threading.Timer(175.0, kill)
     t.setDaemon(True)
     t.start()
 
@@ -231,69 +231,92 @@ def fuzz():
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
-                threading.Thread(target=thread_run, daemon=True).start()
-                threading.Thread(target=thread_run_no_gdb, daemon=True).start()
+                threading.Thread(target=thread_run, daemon=True, args=(arg,)).start()
+                threading.Thread(target=thread_run_no_gdb, daemon=True, args=(arg,)).start()
             sleep(1.0)
         except KeyboardInterrupt:
             break
 
-def try_empty():
+def try_empty(arg):
+    program = arg["program"]
     try:
         p = subprocess.run(program, input=b"", timeout=1.0, capture_output=True)
-        if p.returncode not in [0, 1]:
+        if p.returncode not in [0, 1, -6]:
             write_out_bad(b"", "Empty file")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
 
-def try_repeat():
+def try_repeat(arg):
+    program = arg["program"]
+    sample_text = arg["sample_text"]
     for repeat in range(100000, 0, -5000):
         if len(sample_text) * repeat > 1000000: continue
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-            if p.returncode not in [0, 1]:
+            if p.returncode not in [0, 1, -6]:
                 write_out_bad(input, f"Sample input repeated {repeat} times")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
 
-def try_long():
+def try_long(arg):
+    program = arg["program"]
     try:
         input = b"a"*1000000
         p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-        if p.returncode not in [0, 1]:
+        if p.returncode not in [0, 1, -6]:
             write_out_bad(input, "Input of 1 million characters")
     except subprocess.TimeoutExpired:
         # timed out.
         pass
 
-def try_insertion_big_int():
+def try_insertion_big_int(arg):
+    program = arg["program"]
+    sample_text = arg["sample_text"]
     for idx in range(len(sample_text)):
         try:
             input = sample_text[:idx] + b"-16777216" + sample_text[idx:]
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
-            if p.returncode not in [0, 1]:
+            if p.returncode not in [0, 1, -6]:
                 write_out_bad(input, f"Inserting a large negative int at index {idx}")
         except subprocess.TimeoutExpired:
             # timed out.
             pass
 
-def try_simple():
+def try_simple(arg):
     # Start threads for the simple cases
-    threading.Thread(target=try_empty, daemon=True).start()
-    threading.Thread(target=try_repeat, daemon=True).start()
-    threading.Thread(target=try_long, daemon=True).start()
-    threading.Thread(target=try_insertion_big_int, daemon=True).start()
+    threading.Thread(target=try_empty, daemon=True, args=(arg,)).start()
+    threading.Thread(target=try_repeat, daemon=True, args=(arg,)).start()
+    threading.Thread(target=try_long, daemon=True, args=(arg,)).start()
+    threading.Thread(target=try_insertion_big_int, daemon=True, args=(arg,)).start()
 
 def main():
+    # set up
+    program = sys.argv[1]
+    input = sys.argv[2]
+    with open(input, "rb") as f:
+        sample_text = f.read()
+    command_str = breakpoint_finder.gdb_command_str(program)
+    mutators = get_mutators(sample_text)
+
+    arg = {
+        "program": program,
+        "sample_text": sample_text,
+        "command_str": command_str,
+        "mutators": mutators
+    }
+
     try:
         sys.stderr = StringIO()
-        try_simple()
-        fuzz()
+        try_simple(arg)
+        fuzz(arg)
     finally:
         # Marker that we finished.
-        # program exit will kill all the threads
+        # program exit will kill all the threads but we need to kill left over
+        # gdb instances with killpg. This has the side effect of printing
+        # "Killed" for this python instance.
         sys.stderr = sys.__stderr__
         print("Stopping fuzzer")
         os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)

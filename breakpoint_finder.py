@@ -52,13 +52,11 @@ def gdb_command_str(program: str) -> str:
     and makes them automatically continue.
     """
     addrs = get(program)
+    signals = "handle all nostop noprint\n"
     set_breakpoints = "\n".join(("break *0x"+x) for x in addrs) + '\n'
-    # print(set_breakpoints)
-    # enable_count = 'enable count ' + ' '.join(('*0x' + x) for x in addrs) + '\n'
-    # print(enable_count)
     pass_cmd = "\ncommands 1-$bpnum\nsilent\ncontinue 1000000\nend\n"
 
-    full_command = set_breakpoints + pass_cmd + ""
+    full_command = signals + set_breakpoints + pass_cmd + ""
 
     return full_command
 

@@ -10,6 +10,8 @@ import xml.etree.ElementTree as ET
 # by the number from 'input'.
 class XMLOverFlowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
         xmlTemplate="""
         {tag1}
@@ -34,6 +36,8 @@ class XMLOverFlowMutator(BaseMutator):
 # mulitplied by the number from 'input'
 class XMLAttributeMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         
@@ -65,6 +69,8 @@ class XMLAttributeMutator():
 # number of 'input'
 class XMLhrefAttributeMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if len(text) * repeat > 10000:
@@ -94,6 +100,8 @@ class XMLhrefAttributeMutator(BaseMutator):
 # mulitplied by the number of 'input'
 class XMLTagMutator():
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if len(text) * repeat > 10000:
@@ -131,6 +139,8 @@ class XMLTagMutator():
 # Modifies the Root tag by the number of times from the 'input'
 class XMLRootTagMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
 
         if not try_xml(text):
@@ -138,7 +148,7 @@ class XMLRootTagMutator(BaseMutator):
 
         root = XMLRootTagMutator.get_RootTag(text)
 
-        if len(text) + ("<tag>" * repeat) > 10000:
+        if len(text) + (5 * repeat) > 10000:
             return text
         
         tree = ET.fromstring(text)
@@ -168,6 +178,8 @@ class XMLRootTagMutator(BaseMutator):
 # by the number of times from the 'input'.
 class XMLChildrenMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
+        length = len(text)
+        if length == 0: return text
         repeat = min(int.from_bytes(input[0].tobytes()[2:5], "little") % len(text), 10000)
         
         if len(text) * repeat > 10000:
