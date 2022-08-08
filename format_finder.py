@@ -17,10 +17,9 @@ def try_csv(text: bytes) -> bool:
     """
     import csv
     try:
-        dialect = csv.Sniffer().sniff(text.decode())
-        if dialect is None:
-            return False
-        csv.reader(text.splitlines(), dialect)
+        l = list(csv.reader(text.decode().splitlines()))
+        assert len(l) > 1
+        assert len(l[0]) > 1
     except:
         return False
     return True
@@ -63,9 +62,9 @@ def try_pdf(input: str) -> bool:
     Only returns True if the file is a PDF and is readable
     """
     from pdfminer.high_level import extract_text
-
+    from io import BytesIO
     try:
-        extract_text(input)
+        extract_text(BytesIO(input))
         return True
     except:
         return False

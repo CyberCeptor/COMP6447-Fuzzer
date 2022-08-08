@@ -63,8 +63,8 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
-            JPEGHeightMutator()] * 2)
+        mutators.extend([JPEGSizeMutator(), JPEGWidthMutator(), JPEGHeightMutator(),
+            JPEGMetadataBitFlipMutator(), JPEGMetadataByteFlipMutator()] * 2)
         mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
             ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
@@ -109,7 +109,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         f.write(input)
 
     count = -random.random()
-    # Timer is longer than it feels it should be. But gdb slows down a lot.
+    # Timer for 5 seconds per run. Longer than assumed 1 sec timeout because gdb is slow.
     kill = lambda:(os.kill(gdb_instance.pid, signal.SIGKILL))
     timer = threading.Timer(5.0, kill)
     try:
@@ -124,14 +124,12 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         
         # breakpoint info table.
         breakpoint_info = get_until_gdb(out_pipe)
-        #print('breakpoint info:', breakpoint_info)
 
         # get the exit code
         gdb_instance.stdin.write('print $_exitcode\n'.encode())
         gdb_instance.stdin.flush()
         exit_code = get_until_gdb(out_pipe)
         exit_code = exit_code.split(b" ")[2].split(b"\n")[0]
-        #print('exit code:', exit_code)
         timer.cancel()
 
         if exit_code not in [b"0", b"1"]:
@@ -163,7 +161,6 @@ def thread_run():
     # Make sure the buffer is clear before going.
     out_pipe.seek(0)
     out_pipe.readall()
-    #print("start: ", out_pipe.readall())
     out_pipe.truncate(0)
     out_pipe.seek(0)
 
@@ -182,13 +179,14 @@ def thread_run():
     # Begin minimisation from a random starting vector.
     bounds = Bounds(0, 1)
     timer.start()
-    minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds,
-        options={"maxiter": 20})
-
-    timer.cancel()
-    out_pipe.close()
-    err_pipe.close()
-    os.kill(gdb_instance.pid, signal.SIGKILL)
+    try:
+        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds,
+            options={"maxiter": 20})
+    finally:
+        timer.cancel()
+        out_pipe.close()
+        err_pipe.close()
+        os.kill(gdb_instance.pid, signal.SIGKILL)
 
 def thread_run_no_gdb():
     # get a random sequence of mutators to apply.
@@ -200,10 +198,10 @@ def thread_run_no_gdb():
         return
 
     def objective(vec):
+        input = apply(sample_text, methods, vec)
         try:
-            input = apply(sample_text, methods, vec)
             p = subprocess.run(program, input=input,
-                timeout=0.5, capture_output=True)
+                timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
                 write_out_bad(input, method_name)
         finally:
@@ -225,22 +223,16 @@ def fuzz():
         max_threads = cpus * 3 + 1
     #max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
-    threading.Timer(175.0, thread.interrupt_main).start()
+    t = threading.Timer(175.0, thread.interrupt_main)
+    t.setDaemon(True)
+    t.start()
 
     while True:
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
-                t = threading.Thread(target=thread_run, daemon=True)
-                t.start()
-                t = threading.Thread(target=thread_run_no_gdb, daemon=True)
-                t.start()
-            for t in threading.enumerate():
-                if t.daemon:
-                    try:
-                        t.join(0.0)
-                    except:
-                        pass
+                threading.Thread(target=thread_run, daemon=True).start()
+                threading.Thread(target=thread_run_no_gdb, daemon=True).start()
             sleep(1.0)
         except KeyboardInterrupt:
             break
@@ -256,7 +248,7 @@ def try_empty():
 
 def try_repeat():
     for repeat in range(100000, 0, -5000):
-        if len(sample_text) * repeat > 100000: continue
+        if len(sample_text) * repeat > 1000000: continue
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
@@ -299,12 +291,12 @@ def main():
         sys.stderr = StringIO()
         try_simple()
         fuzz()
-    except Exception as e:
-        print(e.args)
+    finally:
         # Marker that we finished.
         # program exit will kill all the threads
-    finally:
         sys.stderr = sys.__stderr__
+        print("Stopping fuzzer")
+        os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
 
 if __name__ == "__main__":
     main()

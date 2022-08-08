@@ -1,0 +1,4 @@
+int,float,string
+1234,1.50,hello
+0,-0.5,good day
+-512,3.14159,c string
