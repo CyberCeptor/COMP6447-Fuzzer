@@ -21,7 +21,8 @@ class JPEGFilenameMutator(BaseMutator):
         mutated = io.BytesIO()
         image.save(mutated)
 
-        return mutated
+        mutated.seek(0)
+        return mutated.read()
         
     def get_dimension(self) -> "int":
         """
@@ -52,7 +53,8 @@ class JPEGSizeMutator(BaseMutator):
         mutated = io.BytesIO()
         image.save(mutated)
 
-        return mutated
+        mutated.seek(0)
+        return mutated.read()
         
     def get_dimension(self) -> "int":
         """
@@ -82,7 +84,8 @@ class JPEGWidthMutator(BaseMutator):
         mutated = io.BytesIO()
         image.save(mutated)
 
-        return mutated
+        mutated.seek(0)
+        return mutated.read()
         
     def get_dimension(self) -> "int":
         """
@@ -111,7 +114,8 @@ class JPEGHeightMutator(BaseMutator):
         mutated = io.BytesIO()
         image.save(mutated)
 
-        return mutated
+        mutated.seek(0)
+        return mutated.read()
         
     def get_dimension(self) -> "int":
         """
