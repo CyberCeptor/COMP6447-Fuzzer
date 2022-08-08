@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
 import re
-import sys
 import subprocess
 
-def get_instructions():
-    # get jump instructions in a list
-    p = subprocess.call(['./instructions.sh'])
+instructions = ['jbe', 'jnbe', 'jz', 'jpe', 'jne', 'jp', 'jb', 'jae', 'je',
+                'jrcxz', 'jnae', 'jnb', 'jo', 'jcxz', 'ja', 'jna', 'jns', 'jnc', 
+                'jng', 'jnge', 'js', 'jnl', 'jno', 'jg', 'jnle', 'jpo', 'jl', 
+                'jnp', 'jecxz', 'jc', 'jle', 'jge', 'jnz']
 
-    f = open('/tmp/instructions', 'r')
-    instructions = f.readlines()[0].split(' ')
-    instructions = [instruction.rstrip().lower() for instruction in instructions]
-    f.close()
-
-    return set(instructions)
-
-def get_disassembly(program, instructions):
+def get_disassembly(program):
     # get addresses that are jumped to
     subprocess.Popen(f'objdump -d {program} > /tmp/disass', shell=True).communicate()
 
@@ -29,9 +22,8 @@ def get_disassembly(program, instructions):
 def get(program):
     jmp_addr = []
     breakpoints = []
-    instructions = get_instructions()
 
-    get_disassembly(program, instructions)
+    get_disassembly(program)
 
     subprocess.Popen("cut -f1,3,4 /tmp/disass2 | cut -d'<' -f1 > /tmp/disass3", shell=True).communicate()
 
@@ -42,7 +34,6 @@ def get(program):
             jmp_addr.append(line.split(':')[0])
 
             info = re.split(r'j[a-z ]+', line)
-            # print(info)
             breakpoints.append(info[1].strip())
 
     # add each subsequent instruction after each address in the jmp_addr list
@@ -52,8 +43,6 @@ def get(program):
         if any(line.startswith(addr) for addr in jmp_addr) and (i + 1) < len(lines):
             breakpoints.append(lines[i + 1].split(":")[0].lstrip())
     f.close()
-
-    # print(sorted(set(breakpoints)))
 
     return sorted(set(breakpoints))
 
@@ -77,9 +66,6 @@ def count_unique_hits(breakpoint_output: bytes) -> float:
     """
     Count how many unique breakpoints were hit.
     """
-    # breakpoint_output = breakpoint_output.replace(b"\tsilent\n\tcontinue 1000000\n", b"")
-    # breakpoint_output = breakpoint_output.replace(b"        silent\n        continue 1000000\n", b"")
-    # breakpoint_output = breakpoint_output[:-6]
     lines = breakpoint_output.split(b"\n")[1:-1]
     count = 0
 
@@ -100,7 +86,5 @@ def count_total_hits(breakpoint_output: bytes) -> float:
     for line in lines:
         if line.startswith(b"\tbreakpoint already hit"):
             count += int(line.split(b" ")[3])
-            #count += 1
 
-    #print(breakpoint_output)
     return float(count)

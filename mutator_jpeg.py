@@ -122,31 +122,14 @@ class JPEGHeightMutator(BaseMutator):
     def get_name(self) -> "str":
         return "Multiplier for height mutator"
 
-
-
-
 def extend_str(string: str, length: int) -> str:
     if string == "":
-        return ""
+        return b""
     new_str = []
     i = 0
     while (True):
         for char in string:
             if i >= length:
-                return ''.join(new_str)
+                return b''.join(new_str)
             new_str.append(char)
-            i += 1   
-
-def is_float(value: str) -> bool:
-    try:
-        float(value)
-        return True
-    except:
-        return False
-
-def is_int(value: str) -> bool:
-    try:
-        int(value)
-        return True
-    except:
-        return False
+            i += 1

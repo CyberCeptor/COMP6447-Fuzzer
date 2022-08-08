@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 from io import FileIO, StringIO
+import os
+import signal
 import subprocess
 import sys
 from time import sleep
@@ -16,6 +18,7 @@ from mutator_plaintext import *
 from mutator_json import *
 from mutator_csv import *
 from mutator_xml import *
+from mutator_elf_pdf import *
 from mutator_jpeg import *
 
 program = sys.argv[1]
@@ -31,7 +34,7 @@ def write_out_bad(text: bytes, reason: str):
     it immediately and to prevent multiple writers.
     """
     lock.acquire() # never release so that nothing else can possibly write out.
-    print('v bad')
+    
     print("Crash caused by:", reason)
     with open("bad.txt", "wb") as f:
         f.write(text)
@@ -52,7 +55,7 @@ def get_mutators(text):
         mutators.extend([JsonIntMutator(), JsonExtremeIntMutator(), 
             JsonFloatInfMutator(), JsonFloatNanMutator(), 
             JsonListRepeatMutator(), JsonEntryRepeatMutator(), 
-            JsonChangeTypeMutator()] * 3)
+            JsonChangeTypeMutator()] * 2)
 
     if format_finder.try_xml(text):
         mutators.extend([XMLOverFlowMutator(), XMLAttributeMutator(),
@@ -60,14 +63,19 @@ def get_mutators(text):
             XMLChildrenMutator()] * 2)
 
     if format_finder.try_jpg(text):
-        mutators.append(JPEGFilenameMutator())
-        mutators.append(JPEGSizeMutator())
-        mutators.append(JPEGWidthMutator())
-        mutators.append(JPEGHeightMutator())
+        mutators.extend([JPEGFilenameMutator(), JPEGSizeMutator(), JPEGWidthMutator(),
+            JPEGHeightMutator()] * 2)
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
         
     if format_finder.try_elf(text):
-        #mutators.append(ELFMutator())
-        pass
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
+        
+    if format_finder.try_pdf(input):
+        mutators.extend([ELFPDFInsertMutator(), ELFPDFReplaceMutator(), 
+            ELFPDFAppendMutator(), ELFPDFShuffleMutator(), ELFPDFRepeatMutator()] * 2)
+        
     return mutators
 
 command_str = breakpoint_finder.gdb_command_str(program)
@@ -78,17 +86,20 @@ def get_until_gdb(io: FileIO) -> bytes:
     Read from the io until the gdb command signature is reached.
     Returns the full string up to that point then resets the buffer.
     """
+    kill = threading.Timer(5.0, io.close)
     io.seek(0)
     txt = io.readall()
+    kill.start()
     while b"(gdb) " not in txt:
         sleep(0.5)
         io.seek(0)
         txt = io.readall()
+    kill.cancel()
     io.truncate(0)
     io.seek(0)
     return txt
 
-def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO", method_name: str) -> int:
+def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "FileIO", method_name: str) -> float:
     # Run and count breakpoints hit for the given input.
     # No resetting needed because the run command does that for us.
 
@@ -98,8 +109,9 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         f.write(input)
 
     count = -random.random()
-    # Timer is longer than it feels it should be. But gdb slows down a lot.
-    timer = threading.Timer(5.0, gdb_instance.kill)
+    # Timer for 5 seconds per run. Longer than assumed 1 sec timeout because gdb is slow.
+    kill = lambda:(os.kill(gdb_instance.pid, signal.SIGKILL))
+    timer = threading.Timer(5.0, kill)
     try:
         timer.start()
         gdb_instance.stdin.write(f'run < /tmp/input{curr_thread} &> /dev/null\n'.encode())
@@ -127,7 +139,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
             write_out_bad(input, method_name)
 
         count = -breakpoint_finder.count_total_hits(breakpoint_info) / 10
-        print("breakpoint score:", count)
+        print("breakpoint score:", -count)
     finally:
         timer.cancel()
 
@@ -142,13 +154,13 @@ def thread_run():
     gdb_instance = subprocess.Popen(['gdb', '-q', '--nx', program],
         stdin=subprocess.PIPE, stdout=out_pipe, stderr=err_pipe)
 
-    gdb_instance.stdin.write(b"set logging on\n")
+    #gdb_instance.stdin.write(b"set logging on\n")
 
     gdb_instance.stdin.write(command_str.encode())
     gdb_instance.stdin.flush()
     sleep(0.5)
 
-    # Make sure the buffer is clear before going again.
+    # Make sure the buffer is clear before going.
     out_pipe.seek(0)
     out_pipe.readall()
     #print("start: ", out_pipe.readall())
@@ -163,49 +175,46 @@ def thread_run():
     method_name = get_name(methods)
 
     def objective(vec):
-        return count_coverage(gdb_instance, apply(sample_text, methods, vec), out_pipe, method_name)
-    def timer_expire():
-        raise TimeoutError()
-    timer = threading.Timer(30.0, timer_expire)
+        return count_coverage(gdb_instance, apply(sample_text, methods, vec),
+            out_pipe, method_name)
+    kill = lambda:(os.kill(gdb_instance.pid, signal.SIGKILL))
+    timer = threading.Timer(20.0, kill)
     # Begin minimisation from a random starting vector.
     bounds = Bounds(0, 1)
+    timer.start()
     try:
-        timer.start()
-        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds)
-    except TimeoutError:
-        return
-
-    out_pipe.close()
-    err_pipe.close()
-    gdb_instance.kill()
+        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds,
+            options={"maxiter": 20})
+    finally:
+        timer.cancel()
+        out_pipe.close()
+        err_pipe.close()
+        os.kill(gdb_instance.pid, signal.SIGKILL)
 
 def thread_run_no_gdb():
     # get a random sequence of mutators to apply.
-    num_choices = random.randrange(0, len(mutators) * 2)
+    num_choices = random.randrange(1, len(mutators) * 2)
     methods = random.choices(mutators, k=num_choices)
     method_name = get_name(methods)
-    if get_dim(methods) < 1:
+    dim = get_dim(methods)
+    if dim < 1:
         return
 
     def objective(vec):
+        input = apply(sample_text, methods, vec)
         try:
-            input = apply(sample_text, methods, vec)
             p = subprocess.run(program, input=input,
-                timeout=0.5, capture_output=True)
+                timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
                 write_out_bad(input, method_name)
         finally:
             return
-    def timer_expire():
-        raise TimeoutError()
-    timer = threading.Timer(5.0, timer_expire)
+    timer_fake = lambda: 0
+    timer = threading.Timer(5.0, timer_fake)
     # Random walk for 5 seconds.
-    try:
-        timer.start()
-        while True:
-            objective(np.random.rand(get_dim(methods)))
-    except TimeoutError:
-        return
+    timer.start()
+    while timer.is_alive():
+        objective(np.random.rand(dim))
 
 def fuzz():
     import os
@@ -217,14 +226,16 @@ def fuzz():
         max_threads = cpus * 3 + 1
     #max_threads = 2 # for debugging purposes. Lets one thread at a time.
 
+    t = threading.Timer(175.0, thread.interrupt_main)
+    t.setDaemon(True)
+    t.start()
+
     while True:
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
-                t = threading.Thread(target=thread_run, daemon=True)
-                t.start()
-                t = threading.Thread(target=thread_run_no_gdb, daemon=True)
-                t.start()
+                threading.Thread(target=thread_run, daemon=True).start()
+                threading.Thread(target=thread_run_no_gdb, daemon=True).start()
             sleep(1.0)
         except KeyboardInterrupt:
             break
@@ -239,8 +250,8 @@ def try_empty():
         pass
 
 def try_repeat():
-    while True:
-        repeat = random.randrange(0, 100000)
+    for repeat in range(100000, 0, -5000):
+        if len(sample_text) * repeat > 1000000: continue
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
@@ -271,53 +282,23 @@ def try_insertion_big_int():
             # timed out.
             pass
 
-def try_xmlbomb():
-    xmlbomb = """
-        <?xml version="1.0"?>
-        <!DOCTYPE lolz [
-        <!ENTITY lol "lol">
-        <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
-        <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
-        <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
-        <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
-        <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
-        <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
-        <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
-        <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
-        <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
-        <!ENTITY lolz "&lol9;">
-        ]>
-        <root>&lolz;</root>
-        """
-    
-    try:
-        p = subprocess.run(program, input = xmlbomb, timeout=1.0, capture_output=True)
-        if p.returncode != 0:
-            write_out_bad(xmlbomb, "XML bomb")
-    except subprocess.TimeoutExpired:
-        pass
-
-
 def try_simple():
     # Start threads for the simple cases
     threading.Thread(target=try_empty, daemon=True).start()
     threading.Thread(target=try_repeat, daemon=True).start()
     threading.Thread(target=try_long, daemon=True).start()
     threading.Thread(target=try_insertion_big_int, daemon=True).start()
-    threading.Thread(target=try_xmlbomb, daemon=True).start()
 
 def main():
     try:
         sys.stderr = StringIO()
+        #print(mutators)
         try_simple()
         fuzz()
-    except Exception as e:
-        print(e.args)
+    finally:
         # Marker that we finished.
         # program exit will kill all the threads
-    finally:
         sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
-    # thread_run()
     main()

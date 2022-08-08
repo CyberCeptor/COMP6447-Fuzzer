@@ -8,7 +8,9 @@ class CSVRepeatRowMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
         repeat = int.from_bytes(input[1].tobytes()[2:4], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(repeat, 2000)
+
+        if len(text) * repeat > 10000: return text
 
         if not try_csv(text):
             return text
@@ -55,7 +57,9 @@ class CSVRepeatColMutator(BaseMutator):
     def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
         index = int.from_bytes(input[0].tobytes()[2:4], "little")
         repeat = int.from_bytes(input[1].tobytes()[2:4], "little")
-        repeat = min(repeat, 10000)
+        repeat = min(repeat, 2000)
+
+        if len(text) * repeat > 10000: return text
 
         if not try_csv(text):
             return text
@@ -199,6 +203,7 @@ def to_csv(mutated: list) -> bytes:
 def extend_str(string: str, length: int) -> str:
     if string == "":
         return ""
+    if length > 10000: return string
     new_str = []
     i = 0
     while (True):
