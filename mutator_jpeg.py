@@ -122,52 +122,6 @@ class JPEGHeightMutator(BaseMutator):
     def get_name(self) -> "str":
         return "Multiplier for height mutator"
 
-class JPEGMultiplierMutator(BaseMutator):
-    #TODO Finish this
-    def get_mutation(self, text: bytes, input: np.ndarray) -> bytes:
-        index = int.from_bytes(input[0].tobytes()[2:4], "little")
-        multiplier = int.from_bytes(input[1].tobytes()[2:4], "little")
-
-        if not try_jpg(text):
-            return text
-
-        image = Image.open(text)
-
-        exif = image.getexif()
-
-        if not index < len(exif):
-            return text
-        exif = sorted(exif)
-        key = list(exif.keys())[index]
-        
-        if is_int(exif[key]):
-            multiplier = (input[1] * 2 - 1) * multiplier
-            exif[key] = str(int(exif[key]) * multiplier)
-        elif is_float(exif[key]):
-            multiplier = input[2] * 2 - 1
-            if multiplier <= -0.99: multiplier = float("-inf")
-            elif -0.01 <= multiplier <= 0.01: multiplier = 0.0
-            elif multiplier >= 0.99: multiplier = float("inf")
-            exif[key] = str(float(c[r_index][c_index]) * multiplier)
-        else:
-            multiplier = (input[2] * 2 - 1) * multiplier
-            exif[key] = extend_str(exif[key], multiplier)
-        mutated = io.BytesIO()
-        image.save(mutated)
-
-        return mutated
-        
-    def get_dimension(self) -> "int":
-        """
-        First element of vector = the index of the metadata item to change
-        Second element of vector = what to change the item by
-        """
-        return 2
-
-    def get_name(self) -> "str":
-        return "Repeated row in csv"
-
-
 
 
 
