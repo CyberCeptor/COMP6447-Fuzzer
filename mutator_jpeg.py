@@ -1,4 +1,4 @@
-from PIL import Image, ExifTags
+from PIL import Image
 import io
 import numpy as np
 from mutator_base import BaseMutator
@@ -11,7 +11,7 @@ class JPEGFilenameMutator(BaseMutator):
         if not try_jpg(text):
             return text
 
-        image = Image.open(text)
+        image = Image.open(io.BytesIO(text))
         length = (input[0] * 2 - 1) * length
         try:
             image.filename = extend_str(image.filename, length)
@@ -41,7 +41,7 @@ class JPEGSizeMutator(BaseMutator):
         if not try_jpg(text):
             return text
 
-        image = Image.open(text)
+        image = Image.open(io.BytesIO(text))
 
         width = (input[0] * 2 - 1) * width
         height = (input[1] * 2 - 1) * height
@@ -73,7 +73,7 @@ class JPEGWidthMutator(BaseMutator):
         if not try_jpg(text):
             return text
 
-        image = Image.open(text)
+        image = Image.open(io.BytesIO(text))
 
         width = (input[0] * 2 - 1) * width
         try:
@@ -103,7 +103,7 @@ class JPEGHeightMutator(BaseMutator):
         if not try_jpg(text):
             return text
 
-        image = Image.open(text)
+        image = Image.open(io.BytesIO(text))
 
         height = (input[0] * 2 - 1) * height
         try:
