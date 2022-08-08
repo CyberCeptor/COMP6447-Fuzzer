@@ -295,6 +295,7 @@ def main():
         # Marker that we finished.
         # program exit will kill all the threads
         sys.stderr = sys.__stderr__
+        print("Stopping fuzzer")
         os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
 
 if __name__ == "__main__":
