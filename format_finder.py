@@ -17,10 +17,9 @@ def try_csv(text: bytes) -> bool:
     """
     import csv
     try:
-        dialect = csv.Sniffer().sniff(text.decode())
-        if dialect is None:
-            return False
-        csv.reader(text.splitlines(), dialect)
+        l = list(csv.reader(text.decode().splitlines()))
+        assert len(l) > 1
+        assert len(l[0]) > 1
     except:
         return False
     return True

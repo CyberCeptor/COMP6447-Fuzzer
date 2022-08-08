@@ -109,7 +109,7 @@ def count_coverage(gdb_instance: subprocess.Popen, input: bytes, out_pipe: "File
         f.write(input)
 
     count = -random.random()
-    # Timer is longer than it feels it should be. But gdb slows down a lot.
+    # Timer for 5 seconds per run. Longer than assumed 1 sec timeout because gdb is slow.
     kill = lambda:(os.kill(gdb_instance.pid, signal.SIGKILL))
     timer = threading.Timer(5.0, kill)
     try:
@@ -182,13 +182,14 @@ def thread_run():
     # Begin minimisation from a random starting vector.
     bounds = Bounds(0, 1)
     timer.start()
-    minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds,
-        options={"maxiter": 20})
-
-    timer.cancel()
-    out_pipe.close()
-    err_pipe.close()
-    os.kill(gdb_instance.pid, signal.SIGKILL)
+    try:
+        minimize(objective, np.random.rand(get_dim(methods)), bounds=bounds,
+            options={"maxiter": 20})
+    finally:
+        timer.cancel()
+        out_pipe.close()
+        err_pipe.close()
+        os.kill(gdb_instance.pid, signal.SIGKILL)
 
 def thread_run_no_gdb():
     # get a random sequence of mutators to apply.
@@ -200,10 +201,10 @@ def thread_run_no_gdb():
         return
 
     def objective(vec):
+        input = apply(sample_text, methods, vec)
         try:
-            input = apply(sample_text, methods, vec)
             p = subprocess.run(program, input=input,
-                timeout=0.5, capture_output=True)
+                timeout=1.0, capture_output=True)
             if p.returncode not in [0, 1]:
                 write_out_bad(input, method_name)
         finally:
@@ -233,16 +234,8 @@ def fuzz():
         try:
             # Distribute work out and keeping trying until something crashes.
             while threading.active_count() < max_threads:
-                t = threading.Thread(target=thread_run, daemon=True)
-                t.start()
-                t = threading.Thread(target=thread_run_no_gdb, daemon=True)
-                t.start()
-            for t in threading.enumerate():
-                if t.daemon:
-                    try:
-                        t.join(0.0)
-                    except:
-                        pass
+                threading.Thread(target=thread_run, daemon=True).start()
+                threading.Thread(target=thread_run_no_gdb, daemon=True).start()
             sleep(1.0)
         except KeyboardInterrupt:
             break
@@ -258,7 +251,7 @@ def try_empty():
 
 def try_repeat():
     for repeat in range(100000, 0, -5000):
-        if len(sample_text) * repeat > 100000: continue
+        if len(sample_text) * repeat > 1000000: continue
         input = sample_text * repeat
         try:
             p = subprocess.run(program, input=input, timeout=1.0, capture_output=True)
@@ -299,13 +292,12 @@ def try_simple():
 def main():
     try:
         sys.stderr = StringIO()
+        #print(mutators)
         try_simple()
         fuzz()
-    except Exception as e:
-        print(e.args)
+    finally:
         # Marker that we finished.
         # program exit will kill all the threads
-    finally:
         sys.stderr = sys.__stderr__
 
 if __name__ == "__main__":
